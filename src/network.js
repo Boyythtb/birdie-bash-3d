@@ -93,6 +93,10 @@ export class NetworkManager {
     firebaseNet.startMatch();
   }
 
+  startGame() {
+    this.startMatch();
+  }
+
   sendMove(x, z, state) {
     firebaseNet.sendMove(x, z, state);
   }

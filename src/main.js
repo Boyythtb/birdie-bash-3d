@@ -139,11 +139,15 @@ function updateCameraAspect() {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
   if (isPortrait) {
-    gameManager.defaultCamPos.set(-5.8, 12.2, 14.8);
-    gameManager.defaultCamLookAt.set(1.0, 0.4, -0.4);
+    gameManager.lobbyCamPos.set(-5.8, 12.2, 14.8);
+    gameManager.lobbyCamLookAt.set(1.0, 0.4, -0.4);
+    gameManager.matchCamPos.set(0, 9.6, 14.2);
+    gameManager.matchCamLookAt.set(0, 0.5, -0.6);
   } else {
-    gameManager.defaultCamPos.set(-7.2, 10.5, 13.2);
-    gameManager.defaultCamLookAt.set(1.0, 0.4, -0.5);
+    gameManager.lobbyCamPos.set(-7.2, 10.5, 13.2);
+    gameManager.lobbyCamLookAt.set(1.0, 0.4, -0.5);
+    gameManager.matchCamPos.set(0, 8.0, 13.4);
+    gameManager.matchCamLookAt.set(0, 0.6, -0.8);
   }
 }
 

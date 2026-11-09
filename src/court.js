@@ -286,6 +286,110 @@ export function createCourt() {
   group.add(grandstandGroup);
 
   // ==========================================================
+  // 6b. KHÁN ĐÀI PHÍA SAU SÂN (BACK BLEACHERS NHÌN THẲNG NHƯ MÀN 2)
+  // ==========================================================
+  const backStandGroup = new THREE.Group();
+  for (let row = 0; row < 3; row++) {
+    const stepZ = -9.2 - row * 0.95;
+    const stepY = row * 0.55 + 0.35;
+
+    // Bậc thang màu hồng
+    const bench = new THREE.Mesh(
+      new THREE.BoxGeometry(16, 0.45, 0.85),
+      new THREE.MeshStandardMaterial({ color: 0xf472b6, roughness: 0.4 })
+    );
+    bench.position.set(0, stepY - 0.22, stepZ);
+    backStandGroup.add(bench);
+
+    // Hàng khán giả Gummy Beans ngồi cổ vũ
+    for (let x = -6.8; x <= 6.8; x += 1.1) {
+      const gGroup = new THREE.Group();
+      const colRand = gummyColors[Math.floor(Math.random() * gummyColors.length)];
+
+      const beanGeo = new THREE.CapsuleGeometry(0.16, 0.26, 4, 8);
+      const beanMat = new THREE.MeshStandardMaterial({
+        color: colRand,
+        roughness: 0.35,
+        metalness: 0.05
+      });
+      const beanMesh = new THREE.Mesh(beanGeo, beanMat);
+      beanMesh.position.y = 0.28;
+      gGroup.add(beanMesh);
+
+      for (const side of [-1, 1]) {
+        const ear = new THREE.Mesh(new THREE.SphereGeometry(0.055, 6, 6), beanMat);
+        ear.position.set(side * 0.12, 0.48, 0);
+        gGroup.add(ear);
+      }
+
+      gGroup.position.set(x + (Math.random() - 0.5) * 0.15, stepY, stepZ);
+      backStandGroup.add(gGroup);
+
+      spectators.push({
+        group: gGroup,
+        baseY: stepY,
+        phase: Math.random() * Math.PI * 2,
+        speed: 2.2 + Math.random() * 2.5
+      });
+    }
+  }
+  group.add(backStandGroup);
+
+  // BANNER THI ĐẤU POWER SMASH / TBOY BADMINTON PHÍA SAU
+  const bannerCanvas = document.createElement('canvas');
+  bannerCanvas.width = 1024;
+  bannerCanvas.height = 96;
+  const bCtx = bannerCanvas.getContext('2d');
+  bCtx.fillStyle = '#f43f5e';
+  bCtx.fillRect(0, 0, bannerCanvas.width, bannerCanvas.height);
+  bCtx.fillStyle = '#ffffff';
+  bCtx.font = 'bold 44px sans-serif';
+  bCtx.textAlign = 'center';
+  bCtx.textBaseline = 'middle';
+  bCtx.fillText('★ TBOY BADMINTON · POWER SMASH TOURNAMENT 2026 ★', 512, 48);
+
+  const bannerTex = new THREE.CanvasTexture(bannerCanvas);
+  const bannerMat = new THREE.MeshBasicMaterial({ map: bannerTex });
+  const bannerMesh = new THREE.Mesh(new THREE.PlaneGeometry(13.8, 0.8), bannerMat);
+  bannerMesh.position.set(0, 0.55, -8.1);
+  group.add(bannerMesh);
+
+  // ==========================================================
+  // GHẾ TRỌNG TÀI BÊN CẠNH LƯỚI (REFEREE HIGH CHAIR)
+  // ==========================================================
+  const refGroup = new THREE.Group();
+  const refMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.3 }); // Xanh đậm
+
+  // 4 chân thang
+  const legGeo = new THREE.CylinderGeometry(0.025, 0.025, 2.2, 8);
+  for (const lx of [-0.25, 0.25]) {
+    for (const lz of [-0.25, 0.25]) {
+      const leg = new THREE.Mesh(legGeo, refMat);
+      leg.position.set(lx, 1.1, lz);
+      refGroup.add(leg);
+    }
+  }
+
+  // Bậc thang
+  for (let s = 0.4; s <= 1.8; s += 0.35) {
+    const rung = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.03, 0.03), refMat);
+    rung.position.set(0, s, -0.25);
+    refGroup.add(rung);
+  }
+
+  // Mặt ghế & Tựa lưng
+  const seat = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.06, 0.55), refMat);
+  seat.position.set(0, 2.1, 0);
+  refGroup.add(seat);
+
+  const backrest = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.45, 0.05), refMat);
+  backrest.position.set(0, 2.45, 0.25);
+  refGroup.add(backrest);
+
+  refGroup.position.set(3.7, 0, 0);
+  group.add(refGroup);
+
+  // ==========================================================
   // 7. CHẬU CÂY CẢNH DỄ THƯƠNG (Cute Potted Plants)
   // ==========================================================
   function createPlant(x, z) {

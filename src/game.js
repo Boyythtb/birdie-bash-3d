@@ -30,8 +30,20 @@ export class GameManager {
 
     // Rung lắc camera (Screen Shake)
     this.shakeIntensity = 0;
-    this.defaultCamPos = new THREE.Vector3(-7.2, 10.5, 13.2);
-    this.defaultCamLookAt = new THREE.Vector3(1.0, 0.4, -0.5);
+
+    // 1. Góc nhìn Lobby (Isometric 3/4 góc chéo ấm áp chuẩn Birdie Bash khi ở Màn hình chờ)
+    this.lobbyCamPos = new THREE.Vector3(-7.2, 10.5, 13.2);
+    this.lobbyCamLookAt = new THREE.Vector3(1.0, 0.4, -0.5);
+
+    // 2. Góc nhìn Trong Trận Đấu (Camera sau lưng người chơi nhìn thẳng sân đấu như Màn 2)
+    this.matchCamPos = new THREE.Vector3(0, 8.0, 13.4);
+    this.matchCamLookAt = new THREE.Vector3(0, 0.6, -0.8);
+
+    // Vị trí camera động được nội suy mượt mà (Smooth Lerp)
+    this.currentCamPos = this.lobbyCamPos.clone();
+    this.currentCamLookAt = this.lobbyCamLookAt.clone();
+    this.defaultCamPos = this.lobbyCamPos;
+    this.defaultCamLookAt = this.lobbyCamLookAt;
 
     // Lưu trữ phím điều khiển & Cảm ứng vuốt di chuyển
     this.keys = {};
@@ -622,14 +634,23 @@ export class GameManager {
     this.aimReticle.position.copy(this.aimTarget);
     this.aimReticle.visible = (this.state === 'RALLY' || this.state === 'SERVE');
 
-    // Rung lắc camera (Screen Shake)
+    // Chuyển đổi góc camera mượt mà:
+    // Khi ở Lobby -> Isometric 3/4 góc chéo
+    // Khi vào trận (SERVE, RALLY, POINT, GAMEOVER) -> Camera sau lưng người chơi nhìn thẳng như Màn 2
+    const targetCamPos = (this.state === 'MENU') ? this.lobbyCamPos : this.matchCamPos;
+    const targetLookAt = (this.state === 'MENU') ? this.lobbyCamLookAt : this.matchCamLookAt;
+
+    this.currentCamPos.lerp(targetCamPos, 0.08);
+    this.currentCamLookAt.lerp(targetLookAt, 0.08);
+
     if (this.shakeIntensity > 0) {
-      this.camera.position.x = this.defaultCamPos.x + (Math.random() - 0.5) * this.shakeIntensity;
-      this.camera.position.y = this.defaultCamPos.y + (Math.random() - 0.5) * this.shakeIntensity;
+      this.camera.position.x = this.currentCamPos.x + (Math.random() - 0.5) * this.shakeIntensity;
+      this.camera.position.y = this.currentCamPos.y + (Math.random() - 0.5) * this.shakeIntensity;
+      this.camera.position.z = this.currentCamPos.z;
       this.shakeIntensity = Math.max(0, this.shakeIntensity - dt * 2.5);
     } else {
-      this.camera.position.lerp(this.defaultCamPos, 0.1);
+      this.camera.position.copy(this.currentCamPos);
     }
-    this.camera.lookAt(this.defaultCamLookAt);
+    this.camera.lookAt(this.currentCamLookAt);
   }
 }
