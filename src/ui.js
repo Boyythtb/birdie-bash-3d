@@ -482,8 +482,8 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
               </div>
             </div>
             <div class="join-input-bar">
-              <input type="text" id="room-code-input" class="room-code-input" placeholder="NHẬP MÃ (VD: AB12)" maxlength="6" autocomplete="off" autocorrect="off" autocapitalize="characters" />
-              <button id="btn-join-room" class="btn-join-action">VÀO PHÒNG ➜</button>
+              <input type="text" id="room-code-input" class="room-code-input" placeholder="MÃ PHÒNG (VD: AB12)" maxlength="6" autocomplete="off" autocorrect="off" autocapitalize="characters" />
+              <button id="btn-join-room" class="btn-join-action">VÀO ➜</button>
             </div>
           </div>
         </div>
@@ -672,12 +672,22 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
   const onlineViewRoom = document.getElementById('online-view-room');
 
   const closeAllModals = () => {
-    modalBotDiff.classList.add('hidden');
-    modalRoster.classList.add('hidden');
-    modalHow.classList.add('hidden');
-    modalSettings.classList.add('hidden');
-    modalRename.classList.add('hidden');
+    if (modalOnline) modalOnline.classList.add('hidden');
+    if (modalBotDiff) modalBotDiff.classList.add('hidden');
+    if (modalRoster) modalRoster.classList.add('hidden');
+    if (modalHow) modalHow.classList.add('hidden');
+    if (modalSettings) modalSettings.classList.add('hidden');
+    if (modalRename) modalRename.classList.add('hidden');
   };
+
+  // Đóng modal khi bấm ra ngoài vùng xám (backdrop click)
+  [modalOnline, modalBotDiff, modalRoster, modalHow, modalSettings, modalRename].forEach((m) => {
+    if (m) {
+      m.addEventListener('click', (e) => {
+        if (e.target === m) closeAllModals();
+      });
+    }
+  });
 
   document.getElementById('btn-menu-bot').addEventListener('click', () => {
     closeAllModals();
@@ -696,8 +706,13 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     }
   });
 
-  const btnCloseOnline = document.getElementById('btn-close-online');
-  if (btnCloseOnline) btnCloseOnline.addEventListener('click', closeAllModals);
+    const btnCloseOnline = document.getElementById('btn-close-online');
+  if (btnCloseOnline) {
+    btnCloseOnline.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeAllModals();
+    });
+  }
 
   document.getElementById('btn-menu-roster').addEventListener('click', () => {
     closeAllModals();
@@ -878,15 +893,20 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     });
   }
 
-  document.getElementById('btn-copy-invite-link').addEventListener('click', () => {
-    const code = displayRoomCode.innerText;
-    const inviteUrl = `${window.location.origin}${window.location.pathname}?room=${code}`;
-    navigator.clipboard.writeText(inviteUrl).then(() => {
-      alert(`Đã sao chép link mời bạn bè:\n${inviteUrl}\n\nBạn bè chỉ cần bấm link là vào thẳng phòng!`);
-    }).catch(() => {
-      alert(`Mã phòng của bạn: ${code}`);
+  const btnCopyInvite = document.getElementById('btn-copy-invite-link');
+  if (btnCopyInvite) {
+    btnCopyInvite.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const code = displayRoomCode ? displayRoomCode.innerText.trim() : '';
+      if (!code || code === '----') return;
+      const inviteUrl = `${window.location.origin}${window.location.pathname}?room=${code}`;
+      navigator.clipboard.writeText(inviteUrl).then(() => {
+        alert(`✅ ĐÃ SAO CHÉP LINK MỜI!\n\n${inviteUrl}\n\nBạn bè chỉ cần bấm link hoặc quét mã QR là vào thẳng phòng đấu!`);
+      }).catch(() => {
+        prompt('Sao chép link mời bạn bè:', inviteUrl);
+      });
     });
-  });
+  }
 
   // 3 LỰA CHỌN TRONG SẢNH ĐẤU MẠNG ONLINE (GHÉP NHANH / TẠO PHÒNG / NHẬP MÃ)
   const btnOptQuick = document.getElementById('btn-opt-quick');

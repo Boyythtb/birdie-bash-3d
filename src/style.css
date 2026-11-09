@@ -1569,18 +1569,21 @@ html, body {
 /* NHẬP MÃ PHÒNG (JOIN INPUT BAR) */
 .join-input-bar {
   display: flex;
+  align-items: center;
   gap: 8px;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .room-code-input {
   flex: 1;
+  min-width: 0; /* Bắt buộc để không tràn layout flex */
   height: 42px;
   background: #ffffff;
   border: 1.5px solid #cbd5e1;
   border-radius: 12px;
-  padding: 0 14px;
-  font-size: 13.5px;
+  padding: 0 12px;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 1.5px;
   text-align: center;
@@ -1595,7 +1598,7 @@ html, body {
   color: #94a3b8;
   font-weight: 600;
   letter-spacing: 0.5px;
-  font-size: 11.5px;
+  font-size: 11px;
 }
 
 .room-code-input:focus {
@@ -1605,7 +1608,7 @@ html, body {
 
 .btn-join-action {
   height: 42px;
-  padding: 0 16px;
+  padding: 0 14px;
   background: linear-gradient(135deg, #0284c7, #0369a1);
   color: #ffffff;
   border: none;
@@ -1618,6 +1621,7 @@ html, body {
   box-shadow: 0 4px 14px rgba(2, 132, 199, 0.28);
   transition: transform 0.15s ease, filter 0.15s ease;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .btn-join-action:hover {
@@ -2268,5 +2272,106 @@ html, body {
   }
   .qr-sub {
     font-size: 9.5px;
+  }
+}
+
+
+/* ===================================================
+   FIX TRIỆT ĐỂ: TRÁNH ĐÈ NHAU Ở GÓC TRÊN LOBBY TRÊN MOBILE
+   =================================================== */
+@media (max-width: 640px) {
+  .tboy-menu {
+    padding: 12px 14px;
+  }
+  
+  .bb-top-bar-right {
+    top: 12px;
+    right: 12px;
+    gap: 6px;
+    z-index: 50;
+  }
+
+  .bb-circle-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .bb-signin-pill {
+    max-width: 135px;
+    padding: 5px 10px;
+    font-size: 11px;
+    box-sizing: border-box;
+  }
+
+  #txt-signin-name {
+    max-width: 75px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+  }
+
+  /* Badge Tboy Studio và cột trái có khoảng lùi xuống an toàn */
+  .bb-left-column {
+    margin-top: 36px; /* Đẩy xuống bên dưới thanh tên người chơi */
+    max-width: 100%;
+    gap: 10px;
+  }
+
+  .tboy-studio-badge {
+    font-size: 8.5px;
+    padding: 3px 8px;
+    letter-spacing: 0.5px;
+    align-self: flex-start;
+  }
+
+  .bb-logo-birdie, .bb-logo-bash {
+    font-size: 42px;
+  }
+
+  .bb-sub-pill {
+    font-size: 10.5px;
+    padding: 3px 10px;
+  }
+
+  .bb-menu-stack {
+    width: 180px;
+    gap: 7px;
+  }
+
+  .bb-pill-btn {
+    padding: 8px 16px;
+    font-size: 12.5px;
+  }
+
+  /* Modal Online trên Mobile */
+  .online-modal-box {
+    width: 94%;
+    padding: 16px 14px;
+  }
+
+  .online-action-card {
+    padding: 10px 12px;
+    box-sizing: border-box;
+  }
+
+  .join-input-bar {
+    gap: 6px;
+    width: 100%;
+  }
+
+  .room-code-input {
+    height: 38px;
+    font-size: 12px;
+    padding: 0 8px;
+    min-width: 0;
+  }
+
+  .btn-join-action {
+    height: 38px;
+    padding: 0 12px;
+    font-size: 11px;
   }
 }
