@@ -82,21 +82,39 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
 }
 
 .loading-birdie-bounce {
-  font-size: 56px;
+  font-size: 54px;
   animation: birdie-hop 0.8s infinite alternate ease-in-out;
 }
 
 @keyframes birdie-hop {
   0% { transform: translateY(0) scale(1.1, 0.9); }
-  100% { transform: translateY(-24px) scale(0.95, 1.05); }
+  100% { transform: translateY(-22px) scale(0.95, 1.05); }
+}
+
+.tboy-loading-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.tboy-studio-badge {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  color: #f43f5e;
+  background: #ffffff;
+  padding: 4px 14px;
+  border-radius: 9999px;
+  box-shadow: 0 4px 12px rgba(244, 63, 94, 0.15);
 }
 
 .loading-brand {
-  font-size: 32px;
+  font-size: 30px;
   font-weight: 950;
   color: var(--primary);
   letter-spacing: -0.5px;
@@ -128,22 +146,23 @@ html, body {
 }
 
 /* ===================================================
-   2. GIAO DIỆN BIRDIE BASH GỐC (1:1 VỚI BIRDIEBASH.PRO.VN)
+   2. GIAO DIỆN CHÍNH TBOY BADMINTON
    =================================================== */
-.birdie-bash-menu {
+.tboy-menu {
   position: absolute;
   inset: 0;
   z-index: 20;
   display: flex;
   justify-content: space-between;
-  padding: 32px 42px;
+  padding: 30px 40px;
   pointer-events: none;
 }
 
+/* CỘT TRÁI */
 .bb-left-column {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
   pointer-events: auto;
   max-width: 340px;
 }
@@ -151,7 +170,7 @@ html, body {
 .bb-brand-box {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .bb-logo-group {
@@ -160,7 +179,7 @@ html, body {
 }
 
 .bb-logo-birdie {
-  font-size: 78px;
+  font-size: 76px;
   font-weight: 950;
   line-height: 0.88;
   color: #fb7185;
@@ -174,7 +193,7 @@ html, body {
 }
 
 .bb-logo-bash {
-  font-size: 78px;
+  font-size: 76px;
   font-weight: 950;
   line-height: 0.88;
   color: #1e1b4b;
@@ -202,7 +221,7 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  width: 220px;
+  width: 230px;
 }
 
 .bb-pill-btn {
@@ -238,24 +257,21 @@ html, body {
   box-shadow: 0 8px 24px rgba(244, 63, 94, 0.4);
 }
 
-/* CỘT PHẢI */
-.bb-right-column {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 16px;
-  pointer-events: auto;
-}
-
+/* KHU VỰC TOP-RIGHT: GHIM CHẶT GÓC TRÊN BÊN PHẢI TRÊN MỌI THIẾT BỊ */
 .bb-top-bar-right {
+  position: absolute;
+  top: 24px;
+  right: 32px;
+  z-index: 40;
   display: flex;
   align-items: center;
   gap: 10px;
+  pointer-events: auto;
 }
 
 .bb-circle-btn {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   border: none;
   outline: none;
@@ -265,7 +281,7 @@ html, body {
   font-size: 16px;
   font-weight: 900;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
   transition: transform 0.15s;
 }
 
@@ -278,33 +294,44 @@ html, body {
   color: #ffffff;
 }
 
-.bb-circle-btn.yellow {
-  background: #fef08a;
-}
-
 .bb-signin-pill {
   background: #ffffff;
   color: #1e1b4b;
-  border: none;
+  border: 1.5px solid rgba(244, 63, 94, 0.25);
   outline: none;
   padding: 8px 18px;
   border-radius: 9999px;
   font-size: 14px;
   font-weight: 850;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  transition: transform 0.15s;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.15s, border-color 0.15s;
 }
 
 .bb-signin-pill:hover {
   transform: scale(1.04);
+  border-color: #f43f5e;
 }
 
-/* BẢNG TOP PLAYERS */
+.user-icon { font-size: 15px; }
+.edit-badge { font-size: 12px; color: #f43f5e; }
+
+/* BẢNG XẾP HẠNG BÊN PHẢI */
+.bb-right-column {
+  position: absolute;
+  top: 85px;
+  right: 32px;
+  pointer-events: auto;
+  z-index: 25;
+}
+
 .bb-leaderboard-card {
-  width: 250px;
+  width: 255px;
   background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(14px);
   border-radius: 20px;
   padding: 16px 18px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
@@ -321,7 +348,7 @@ html, body {
 
 .bb-lb-title {
   font-size: 11px;
-  font-weight: 850;
+  font-weight: 900;
   letter-spacing: 0.8px;
   color: #64748b;
 }
@@ -422,12 +449,13 @@ html, body {
 }
 
 .bb-lb-footer {
-  font-size: 11px;
-  font-weight: 850;
-  color: #f43f5e;
+  font-size: 10px;
+  font-weight: 800;
+  color: #64748b;
   cursor: pointer;
   padding-top: 4px;
   border-top: 1px solid #f1f5f9;
+  line-height: 1.3;
 }
 
 /* ===================================================
@@ -541,13 +569,8 @@ html, body {
   transform: scale(1.35);
 }
 
-.hud-score-p1 {
-  color: #0284c7;
-}
-
-.hud-score-bot {
-  color: #ef4444;
-}
+.hud-score-p1 { color: #0284c7; }
+.hud-score-bot { color: #ef4444; }
 
 .hud-center {
   display: flex;
@@ -1168,137 +1191,68 @@ html, body {
   cursor: pointer;
 }
 
-/* ===================================================
-   5. CẢM ỨNG MOBILE PASTEL CONTROLS
-   =================================================== */
-.mobile-controls {
-  display: none;
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 30;
-}
-
-.has-touch .mobile-controls {
-  display: block;
-}
-
-.joystick-zone {
-  position: absolute;
-  bottom: 24px;
-  left: 20px;
-  width: 120px;
-  height: 120px;
-  pointer-events: auto;
-}
-
-.joystick-base {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.9);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.joystick-thumb {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #facc15, #f59e0b);
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
-}
-
-.action-buttons-pro {
-  position: absolute;
-  bottom: 24px;
-  right: 20px;
-  display: grid;
-  grid-template-columns: repeat(2, 70px);
-  grid-template-rows: repeat(2, 70px);
-  gap: 10px;
-  pointer-events: auto;
-}
-
-.btn-action-pro {
-  border: none;
-  outline: none;
-  border-radius: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-  cursor: pointer;
-  transition: transform 0.1s;
-}
-
-.btn-action-pro:active, .btn-pressed {
-  transform: scale(0.92);
-}
-
-.btn-dive {
-  background: linear-gradient(135deg, #34d399, #10b981);
-  color: #ffffff;
-}
-
-.btn-drop {
-  background: linear-gradient(135deg, #c084fc, #a855f7);
-  color: #ffffff;
-}
-
-.btn-smash {
-  background: linear-gradient(135deg, #f87171, #ef4444);
-  color: #ffffff;
-}
-
-.btn-hit-main {
-  background: linear-gradient(135deg, #38bdf8, #0284c7);
-  color: #ffffff;
-}
-
-.btn-act-icon { font-size: 20px; }
-.btn-act-lbl { font-size: 9px; font-weight: 900; }
-.btn-act-icon-lg { font-size: 24px; }
-.btn-act-lbl-lg { font-size: 10px; font-weight: 900; }
-
 .mt-2 { margin-top: 8px; }
 .mt-3 { margin-top: 12px; }
 
 /* ===================================================
-   RESPONSIVE DESIGN (MOBILE PORTRAIT & LANDSCAPE)
+   RESPONSIVE DESIGN (MOBILE & TABLET - ZERO SCROLLING)
    =================================================== */
 @media (max-width: 640px) {
-  .birdie-bash-menu {
-    padding: 16px 14px;
-    flex-direction: column;
-    justify-content: space-between;
+  .tboy-menu {
+    padding: 14px 14px;
   }
   .bb-left-column {
     max-width: 100%;
-    gap: 14px;
+    gap: 12px;
+  }
+  .tboy-studio-badge {
+    font-size: 9px;
+    padding: 3px 10px;
   }
   .bb-logo-birdie, .bb-logo-bash {
-    font-size: 48px;
+    font-size: 46px;
+  }
+  .bb-sub-pill {
+    font-size: 11px;
+    padding: 4px 12px;
   }
   .bb-menu-stack {
-    width: 180px;
+    width: 190px;
     gap: 8px;
   }
   .bb-pill-btn {
     padding: 9px 18px;
     font-size: 13px;
   }
-  .bb-right-column {
-    align-items: flex-start;
+
+  /* GHIM CHẶT TÊN NGƯỜI CHƠI LÊN GÓC PHẢI TRÊN MOBILE */
+  .bb-top-bar-right {
+    top: 14px;
+    right: 14px;
+    gap: 6px;
   }
-  .bb-leaderboard-card {
-    display: none; /* Ẩn leaderboard trên màn hình điện thoại dọc siêu nhỏ để nhìn rõ 3D court */
+  .bb-signin-pill {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  .bb-circle-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
+  }
+
+  /* ẨN BẢNG LEADERBOARD TRÊN MOBILE ĐỂ DÀNH TRỌN KHÔNG GIAN CHO SÂN 3D */
+  .bb-right-column {
+    display: none;
+  }
+
+  .match-hud-pill {
+    padding: 4px 10px;
+  }
+  .hud-score {
+    font-size: 24px;
+  }
+  .hud-emoji {
+    font-size: 20px;
   }
 }

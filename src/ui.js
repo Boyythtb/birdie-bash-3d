@@ -11,8 +11,9 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     document.body.classList.add('is-desktop');
   }
 
-  // TÊN NGƯỜI CHƠI TÙY CHỌN (LƯU LOCAL STORAGE)
-  let playerName = localStorage.getItem('birdie_player_name') || 'Lê Tân';
+  // TÊN NGƯỜI CHƠI TÙY CHỌN (MẶC ĐỊNH MÃ TỰ ĐỘNG, ĐỂ MỌI NGƯỜI TỰ ĐẶT TÊN)
+  const randNum = Math.floor(1000 + Math.random() * 9000);
+  let playerName = localStorage.getItem('tboy_player_name') || `Tay Vợt #${randNum}`;
 
   app.innerHTML = `
     <!-- 3D WebGL Canvas Container -->
@@ -22,7 +23,10 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     <div id="loading-screen" class="loading-screen">
       <div class="loading-box">
         <span class="loading-birdie-bounce">🏸</span>
-        <h2 class="loading-brand">BIRDIE BASH <span>3D</span></h2>
+        <div class="tboy-loading-brand">
+          <span class="tboy-studio-badge">TBOY STUDIO</span>
+          <h2 class="loading-brand">Tboy <span>Badminton 3D</span></h2>
+        </div>
         <div class="loading-track">
           <div id="loading-bar-inner" class="loading-fill"></div>
         </div>
@@ -30,7 +34,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
       </div>
     </div>
 
-    <!-- 2. HUD TRONG TRẬN ĐẤU (COZY ESPORTS MATCH HUD) -->
+    <!-- 2. HUD TRONG TRẬN ĐẤU (COZY MATCH HUD) -->
     <div id="hud" class="hud-top-bar hidden">
       <div class="match-hud-pill">
         <div class="hud-player">
@@ -69,103 +73,76 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
         </div>
       </div>
 
-      <button id="btn-toggle-hints" class="hud-hint-btn" title="Phím tắt">⌨️ Phím</button>
-      <button id="btn-pause-game" class="hud-hint-btn btn-exit" title="Thoát trận">✕ Rời trận</button>
+      <button id="btn-toggle-hints" class="hud-hint-btn" title="Hướng dẫn điều khiển">⌨️ Phím</button>
+      <button id="btn-pause-game" class="hud-hint-btn btn-exit" title="Về màn hình chính">✕ Rời trận</button>
     </div>
 
     <!-- POPUP THÔNG BÁO TIMING & GHI ĐIỂM -->
     <div id="banner-notice" class="banner-notice hidden">
-      <h2 id="banner-title" class="banner-title">PERFECT! 🔥</h2>
-      <p id="banner-sub" class="banner-sub">Nhịp đập hoàn hảo</p>
+      <h2 id="banner-title" class="banner-title">HOÀN HẢO! 🔥</h2>
+      <p id="banner-sub" class="banner-sub">Cú đập cực chuẩn</p>
     </div>
 
-    <!-- HƯỚNG DẪN TRÊN PC -->
+    <!-- HƯỚNG DẪN TRÊN MÀN HÌNH (TỰ ĐỘNG ẨN) -->
     <div id="pc-hints" class="pc-hints-card hidden">
       <div class="hints-row">
-        <span>🏸 <strong>[SPACE] / Click chuột:</strong> Tự động Smash / Drop / Dive thông minh</span>
+        <span>🏸 <strong>Chạm / Click chuột / Space:</strong> Đánh cầu & Tự động Smash / Drop / Dive thông minh</span>
         <button id="btn-close-hints" class="btn-close-x">✕</button>
       </div>
-      <div class="hints-sub">WASD: Di chuyển đón cầu & bẻ hướng ngắm góc hiểm</div>
-    </div>
-
-    <!-- ĐIỀU KHIỂN CẢM ỨNG MOBILE PASTEL SPORT CONTROLS -->
-    <div id="mobile-controls" class="mobile-controls">
-      <div id="joystick-zone" class="joystick-zone">
-        <div id="joystick-base" class="joystick-base">
-          <div class="joystick-ring"></div>
-          <div id="joystick-thumb" class="joystick-thumb"></div>
-        </div>
-      </div>
-
-      <div class="action-buttons-pro">
-        <button id="btn-dive" class="btn-action-pro btn-dive" aria-label="Dive">
-          <span class="btn-act-icon">💨</span>
-          <span class="btn-act-lbl">CỨU CẦU</span>
-        </button>
-        <button id="btn-drop" class="btn-action-pro btn-drop" aria-label="Drop">
-          <span class="btn-act-icon">🪶</span>
-          <span class="btn-act-lbl">BỎ NHỎ</span>
-        </button>
-        <button id="btn-smash" class="btn-action-pro btn-smash" aria-label="Smash">
-          <span class="btn-act-icon">💥</span>
-          <span class="btn-act-lbl">SMASH</span>
-        </button>
-        <button id="btn-hit" class="btn-action-pro btn-hit-main" aria-label="Hit">
-          <span class="btn-act-icon-lg">🏸</span>
-          <span class="btn-act-lbl-lg">ĐÁNH CẦU</span>
-        </button>
-      </div>
+      <div class="hints-sub">Vuốt ngón tay hoặc phím WASD: Di chuyển đón cầu & bẻ hướng góc hiểm</div>
     </div>
 
     <!-- ===================================================
-         3. GIAO DIỆN CHUẨN BIRDIE BASH (COZY AESTHETIC 1:1)
-         ZERO SCROLLING - ĐỒNG BỘ 100% PHONG CÁCH GỐC
+         3. GIAO DIỆN CHÍNH TBOY BADMINTON (100% TIẾNG VIỆT)
+         ZERO SCROLLING - ĐẲNG CẤP & SANG TRỌNG
          =================================================== -->
-    <div id="main-menu" class="birdie-bash-menu hidden">
-      <!-- CỘT TRÁI: LOGO BUBBLY VÀ CÁC NÚT ĐIỀU HƯỚNG DẠNG THẺ PILL -->
+    <div id="main-menu" class="tboy-menu hidden">
+      <!-- CỘT TRÁI: THƯƠNG HIỆU TBOY VÀ DANH SÁCH CHẾ ĐỘ THI ĐẤU -->
       <div class="bb-left-column">
         <div class="bb-brand-box">
+          <div class="tboy-studio-badge">✨ TBOY STUDIO PRESENTS ✨</div>
           <div class="bb-logo-group">
-            <h1 class="bb-logo-birdie">Birdie</h1>
-            <h1 class="bb-logo-bash">Bash</h1>
+            <h1 class="bb-logo-birdie">Tboy</h1>
+            <h1 class="bb-logo-bash">Badminton</h1>
           </div>
-          <div class="bb-sub-pill">Cozy badminton. Serious rallies.</div>
+          <div class="bb-sub-pill">Cầu lông vui nhộn · Tranh tài đỉnh cao</div>
         </div>
 
         <div class="bb-menu-stack">
           <button id="btn-menu-bot" class="bb-pill-btn active">
-            <span>Play vs bot</span>
+            <span>🏸 Đấu Với Máy</span>
           </button>
           <button id="btn-menu-online" class="bb-pill-btn">
-            <span>Online match</span>
+            <span>🌐 Đấu Mạng Online</span>
           </button>
           <button id="btn-menu-roster" class="bb-pill-btn">
-            <span>Choose character</span>
+            <span>👕 Chọn Nhân Vật</span>
           </button>
           <button id="btn-menu-help" class="bb-pill-btn">
-            <span>How to play</span>
+            <span>📖 Hướng Dẫn Chơi</span>
           </button>
           <button id="btn-menu-settings" class="bb-pill-btn">
-            <span>Settings</span>
+            <span>⚙️ Cài Đặt Game</span>
           </button>
         </div>
       </div>
 
-      <!-- CỘT PHẢI: TOP UTILITY VÀ BẢNG TOP PLAYERS -->
-      <div class="bb-right-column">
-        <div class="bb-top-bar-right">
-          <button class="bb-circle-btn pink" id="btn-bb-info" title="Thông tin">!</button>
-          <button class="bb-circle-btn yellow" id="btn-bb-emoji" title="Biểu cảm & Nhân vật">😀</button>
-          <button class="bb-signin-pill" id="btn-open-rename">
-            <span id="txt-signin-name">${playerName}</span>
-          </button>
-        </div>
+      <!-- CỘT PHẢI: TÊN NGƯỜI CHƠI GHIM CHẶT GÓC TRÊN BÊN PHẢI -->
+      <div class="bb-top-bar-right">
+        <button class="bb-circle-btn pink" id="btn-bb-info" title="Giới thiệu game">!</button>
+        <button class="bb-signin-pill" id="btn-open-rename" title="Bấm để đổi tên">
+          <span class="user-icon">👤</span>
+          <span id="txt-signin-name">${playerName}</span>
+          <span class="edit-badge">✏️</span>
+        </button>
+      </div>
 
-        <!-- BẢNG XẾP HẠNG TOP PLAYERS CHUẨN BIRDIE BASH -->
+      <!-- BẢNG XẾP HẠNG BÊN PHẢI (ẨN TRÊN MOBILE ĐỂ SÂN ĐẤU RỘNG RÃI) -->
+      <div class="bb-right-column">
         <div class="bb-leaderboard-card">
           <div class="bb-lb-header">
-            <span class="bb-lb-title">TOP PLAYERS</span>
-            <button class="bb-lb-viewall" id="btn-lb-viewall">View all</button>
+            <span class="bb-lb-title">BẢNG XẾP HẠNG</span>
+            <button class="bb-lb-viewall" id="btn-lb-viewall">Xem tất cả</button>
           </div>
 
           <div class="bb-lb-list">
@@ -175,10 +152,10 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
                 <span class="bb-rank-num">1</span>
               </div>
               <div class="bb-lb-avatar blue">🐵</div>
-              <span class="bb-lb-name">Lê Tân</span>
+              <span class="bb-lb-name">Siêu Quậy Tboy</span>
               <div class="bb-lb-score">
                 <span class="bb-score-num">297</span>
-                <span class="bb-score-lbl">WINS</span>
+                <span class="bb-score-lbl">TRẬN THẮNG</span>
               </div>
             </div>
 
@@ -187,10 +164,10 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
                 <span class="bb-rank-num">2</span>
               </div>
               <div class="bb-lb-avatar yellow">🐻</div>
-              <span class="bb-lb-name">Nguyễn Tân</span>
+              <span class="bb-lb-name">Vua Đập Cầu</span>
               <div class="bb-lb-score">
                 <span class="bb-score-num">227</span>
-                <span class="bb-score-lbl">WINS</span>
+                <span class="bb-score-lbl">TRẬN THẮNG</span>
               </div>
             </div>
 
@@ -199,26 +176,26 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
                 <span class="bb-rank-num">3</span>
               </div>
               <div class="bb-lb-avatar pink">🐱</div>
-              <span class="bb-lb-name">Nữ bơi vào đây</span>
+              <span class="bb-lb-name">Thỏ Tốc Độ</span>
               <div class="bb-lb-score">
                 <span class="bb-score-num">134</span>
-                <span class="bb-score-lbl">WINS</span>
+                <span class="bb-score-lbl">TRẬN THẮNG</span>
               </div>
             </div>
           </div>
 
           <div class="bb-lb-footer" id="btn-lb-signin">
-            Sign in to get on the board
+            Bấm vào tên góc trên để đổi biệt danh của bạn
           </div>
         </div>
       </div>
     </div>
 
-    <!-- MODAL CHỌN ĐỘ KHÓ KHI BẤM PLAY VS BOT -->
+    <!-- MODAL CHỌN ĐỘ KHÓ (ĐẤU VỚI MÁY) -->
     <div id="modal-bot-diff" class="modal-overlay hidden">
       <div class="bb-modal-box">
         <div class="bb-modal-header">
-          <h3>ĐẤU VỚI MÁY (BOT)</h3>
+          <h3>CHỌN ĐỘ KHÓ ĐỐI THỦ</h3>
           <button id="btn-close-bot-modal" class="btn-close-x">✕</button>
         </div>
         <p class="bb-modal-sub">Chọn cấp độ thử thách của đối thủ AI:</p>
@@ -226,22 +203,22 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
           <button class="bb-diff-card" data-diff="rookie">
             <span class="bb-diff-icon">🌱</span>
             <div class="bb-diff-info">
-              <strong>Rookie (Tập Sự)</strong>
-              <span>Đánh bóng chậm, làm quen nhịp</span>
+              <strong>Tập Sự (Rookie)</strong>
+              <span>Cầu bay chậm, thích hợp làm quen nhịp</span>
             </div>
           </button>
           <button class="bb-diff-card active" data-diff="pro">
             <span class="bb-diff-icon">⚡</span>
             <div class="bb-diff-info">
-              <strong>Pro (Kỹ Thuật)</strong>
-              <span>Phản xạ nhanh, biết smash & drop</span>
+              <strong>Kỹ Thuật (Pro)</strong>
+              <span>Phản xạ nhanh, biết Smash & Bỏ nhỏ sát lưới</span>
             </div>
           </button>
           <button class="bb-diff-card" data-diff="ace">
             <span class="bb-diff-icon">🔥</span>
             <div class="bb-diff-info">
-              <strong>Ace (Cao Thủ)</strong>
-              <span>Đập cắm góc hiểm, phản xạ đỉnh cao</span>
+              <strong>Cao Thủ (Ace)</strong>
+              <span>Đập cắm góc hiểm, cứu cầu dive ngoạn mục</span>
             </div>
           </button>
         </div>
@@ -255,10 +232,10 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     <div id="modal-roster" class="modal-overlay hidden">
       <div class="bb-modal-box wide">
         <div class="bb-modal-header">
-          <h3>CHỌN NHÂN VẬT THI ĐẤU</h3>
+          <h3>CHỌN ĐẤU THỦ RA SÂN</h3>
           <button id="btn-close-roster" class="btn-close-x">✕</button>
         </div>
-        <p class="bb-modal-sub">Bấm chọn để đổi diện mạo chú chim của bạn ngay trên sân:</p>
+        <p class="bb-modal-sub">Chọn chú chim yêu thích của bạn để thi đấu:</p>
         <div class="roster-grid">
           <div class="roster-card active" data-color="0xfde047" data-sec="0xffedd5" data-jersey="0x38bdf8" data-avatar="🐥" data-name="Birdie Vàng">
             <div class="roster-avatar-box gold">🐥</div>
@@ -272,7 +249,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
             <div class="roster-avatar-box dark">🪻</div>
             <div class="roster-info">
               <h4 class="roster-name">Birdie Tím</h4>
-              <span class="roster-type">Số 2 · Bỏ nhỏ sát lưới</span>
+              <span class="roster-type">Số 2 · Bỏ nhỏ tinh tế</span>
             </div>
             <button class="btn-select-roster">CHỌN</button>
           </div>
@@ -280,7 +257,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
             <div class="roster-avatar-box ice">🩵</div>
             <div class="roster-info">
               <h4 class="roster-name">Birdie Lam</h4>
-              <span class="roster-type">Số 7 · Tốc độ thần tốc</span>
+              <span class="roster-type">Số 7 · Tốc độ sấm sét</span>
             </div>
             <button class="btn-select-roster">CHỌN</button>
           </div>
@@ -288,7 +265,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
             <div class="roster-avatar-box pink">🌸</div>
             <div class="roster-info">
               <h4 class="roster-name">Birdie Hồng</h4>
-              <span class="roster-type">Số 3 · Cứu cầu Dive</span>
+              <span class="roster-type">Số 3 · Cứu cầu Dive đỉnh</span>
             </div>
             <button class="btn-select-roster">CHỌN</button>
           </div>
@@ -304,7 +281,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
             <div class="roster-avatar-box orange">🦊</div>
             <div class="roster-info">
               <h4 class="roster-name">Birdie Cam</h4>
-              <span class="roster-type">Số 88 · Smash sấm sét</span>
+              <span class="roster-type">Số 88 · Smash búa bổ</span>
             </div>
             <button class="btn-select-roster">CHỌN</button>
           </div>
@@ -312,7 +289,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
       </div>
     </div>
 
-    <!-- MODAL HOW TO PLAY -->
+    <!-- MODAL HƯỚNG DẪN CÁCH CHƠI -->
     <div id="modal-how-to-play" class="modal-overlay hidden">
       <div class="bb-modal-box">
         <div class="bb-modal-header">
@@ -321,32 +298,39 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
         </div>
         <div class="how-to-list">
           <div class="how-item">
-            <span class="how-icon">🏸</span>
+            <span class="how-icon">📱</span>
             <div>
-              <strong>[SPACE] hoặc Click chuột / Nút Đánh:</strong>
-              <p>Đánh cầu qua lưới. Game tự động canh Smash khi cầu cao, Drop khi sát lưới, hoặc Dive khi cầu xa.</p>
+              <strong>Trên Điện Thoại:</strong>
+              <p>Chạm & vuốt ngón tay bất kỳ đâu trên màn hình để di chuyển. Chạm nhẹ (Tap) vào màn hình để đập cầu sang sân đối thủ!</p>
             </div>
           </div>
           <div class="how-item">
-            <span class="how-icon">🕹️</span>
+            <span class="how-icon">💻</span>
             <div>
-              <strong>Phím WASD / Cần gạt Joystick:</strong>
-              <p>Di chuyển đón cầu và bẻ hướng ngắm vào các góc hiểm.</p>
+              <strong>Trên Máy Tính:</strong>
+              <p>Phím <strong>WASD</strong> hoặc <strong>Mũi tên</strong> để di chuyển đón cầu. Phím <strong>SPACE</strong> hoặc <strong>Click chuột</strong> để đánh cầu.</p>
+            </div>
+          </div>
+          <div class="how-item">
+            <span class="how-icon">⚡</span>
+            <div>
+              <strong>Hệ Thống Đánh Thông Minh:</strong>
+              <p>Game tự động bật nhảy SMASH khi cầu cao, BỎ NHỎ sát lưới khi đứng gần, hoặc NHOÀI NGƯỜI CỨU CẦU khi cầu ở xa.</p>
             </div>
           </div>
           <div class="how-item">
             <span class="how-icon">⭕</span>
             <div>
-              <strong>Vòng tròn Timing:</strong>
+              <strong>Vòng Tròn Timing:</strong>
               <p>Bấm đúng lúc vòng tròn đỏ co vừa khít quả cầu để đạt PERFECT SMASH uy lực x1.5!</p>
             </div>
           </div>
         </div>
-        <button id="btn-how-done" class="bb-btn-primary mt-3">ĐÃ HIỂU, CHIẾN THÔI!</button>
+        <button id="btn-how-done" class="bb-btn-primary mt-3">ĐÃ HIỂU, TRANH TÀI NGAY!</button>
       </div>
     </div>
 
-    <!-- MODAL SETTINGS -->
+    <!-- MODAL CÀI ĐẶT GAME -->
     <div id="modal-settings" class="modal-overlay hidden">
       <div class="bb-modal-box">
         <div class="bb-modal-header">
@@ -356,7 +340,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
         <div class="settings-list">
           <div class="setting-item">
             <div class="setting-info">
-              <span class="setting-title">🔊 Hiệu Ứng Âm Thanh</span>
+              <span class="setting-title">🔊 Hiệu Ứng Âm Thanh (SFX)</span>
               <span class="setting-desc">Tiếng đập cầu, còi trọng tài, tiếng vung vợt</span>
             </div>
             <button id="toggle-sfx" class="btn-toggle active">BẬT</button>
@@ -373,12 +357,12 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
       </div>
     </div>
 
-    <!-- MODAL ĐỔI TÊN NGƯỜI CHƠI (RENAME MODAL) -->
+    <!-- MODAL ĐỔI BIỆT DANH NGƯỜI CHƠI -->
     <div id="modal-rename" class="modal-overlay hidden">
       <div class="rename-modal-box">
         <div class="rename-icon-wrap">✏️</div>
-        <h3 class="rename-title">ĐẶT BIỆT DANH THI ĐẤU</h3>
-        <p class="rename-sub">Tên hiển thị trên bảng điểm và khi thi đấu Online</p>
+        <h3 class="rename-title">ĐẶT BIỆT DANH CỦA BẠN</h3>
+        <p class="rename-sub">Tên hiển thị trên bảng điểm và khi đấu Online với bạn bè</p>
         <input type="text" id="input-player-name" class="rename-input" maxlength="15" value="${playerName}" placeholder="Nhập tên của bạn..." />
         <div class="rename-actions">
           <button id="btn-save-name" class="btn-rename-save">LƯU BIỆT DANH</button>
@@ -387,7 +371,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
       </div>
     </div>
 
-    <!-- MODAL PHÒNG CHỜ ONLINE CAO CẤP (VIP ROOM LOBBY) -->
+    <!-- MODAL PHÒNG CHỜ ONLINE (MULTIPLAYER REALTIME) -->
     <div id="modal-online-room" class="modal-overlay hidden">
       <div class="online-room-box">
         <div class="room-vip-header">
@@ -406,13 +390,13 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
           <span class="copy-link-icon">🔗</span>
           <div class="copy-link-text">
             <span class="copy-link-main">SAO CHÉP LINK MỜI BẠN BÈ</span>
-            <span class="copy-link-sub">Bạn bè chỉ cần bấm link là vào thẳng phòng!</span>
+            <span class="copy-link-sub">Gửi qua Zalo, Messenger, bạn bè bấm vào là vào thẳng phòng!</span>
           </div>
           <span class="copy-link-tag">1-CHẠM 📋</span>
         </button>
 
         <div class="room-match-info">
-          <span id="room-mode-tag" class="room-mode-tag">ONLINE 1v1 REALTIME</span>
+          <span id="room-mode-tag" class="room-mode-tag">ĐẤU MẠNG 1v1 REALTIME</span>
           <p id="room-status-note" class="room-status-note">Đang chờ đối thủ vào phòng...</p>
         </div>
 
@@ -444,13 +428,12 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
           </button>
         </div>
 
-        <!-- CÁC LỰA CHỌN PHỤ KHI VÀO PHÒNG ONLINE -->
         <div class="online-card-actions mt-3">
-          <button id="btn-quick-match-1v1" class="btn-card-action primary">⚡ Ghép Nhanh 1v1</button>
-          <button id="btn-create-room-1v1" class="btn-card-action secondary">➕ Tạo Phòng Mới</button>
+          <button id="btn-quick-match-1v1" class="btn-card-action primary">⚡ Ghép Nhanh Ngẫu Nhiên</button>
+          <button id="btn-create-room-1v1" class="btn-card-action secondary">➕ Tạo Mã Phòng Mới</button>
         </div>
         <div class="room-action-row mt-2">
-          <input type="text" id="room-code-input" class="room-input" placeholder="Nhập mã 4 chữ..." maxlength="4" />
+          <input type="text" id="room-code-input" class="room-input" placeholder="Nhập mã phòng 4 chữ..." maxlength="4" />
           <button id="btn-join-room" class="btn-room-join">Vào Phòng</button>
         </div>
       </div>
@@ -467,7 +450,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
         </div>
         <div class="game-over-btns">
           <button id="btn-play-again" class="bb-btn-primary btn-replay">CHƠI TIẾP VÁN MỚI 🏸</button>
-          <button id="btn-back-to-lobby" class="btn-lobby-sub">VỀ SẢNH CHÍNH</button>
+          <button id="btn-back-to-lobby" class="btn-lobby-sub">VỀ MÀN HÌNH CHÍNH</button>
         </div>
       </div>
     </div>
@@ -485,7 +468,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     loadP += 25;
     if (loadingBar) loadingBar.style.width = `${loadP}%`;
     if (loadP === 50 && loadingStatus) loadingStatus.innerText = 'Tải sân thi đấu & Khán đài 3D...';
-    if (loadP === 75 && loadingStatus) loadingStatus.innerText = 'Kết nối hệ thống Multiplayer...';
+    if (loadP === 75 && loadingStatus) loadingStatus.innerText = 'Kết nối máy chủ Firebase...';
     if (loadP >= 100) {
       clearInterval(loadInterval);
       setTimeout(() => {
@@ -538,7 +521,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     const newName = inputPlayerName.value.trim();
     if (newName.length > 0) {
       playerName = newName;
-      localStorage.setItem('birdie_player_name', playerName);
+      localStorage.setItem('tboy_player_name', playerName);
       document.getElementById('txt-signin-name').innerText = playerName;
       document.getElementById('hud-player-name').innerText = playerName.toUpperCase();
     }
@@ -554,7 +537,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
   });
 
   // ==========================================
-  // QUẢN LÝ TRẠNG THÁI & MODALS BIRDIE BASH
+  // QUẢN LÝ TRẠNG THÁI & MODALS
   // ==========================================
   let selectedDiff = 'pro';
   let selectedChar = {
@@ -579,13 +562,11 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     modalRename.classList.add('hidden');
   };
 
-  // Nút Play vs bot -> Mở modal chọn độ khó
   document.getElementById('btn-menu-bot').addEventListener('click', () => {
     closeAllModals();
     modalBotDiff.classList.remove('hidden');
   });
 
-  // Nút Online match -> Mở modal phòng online
   document.getElementById('btn-menu-online').addEventListener('click', () => {
     closeAllModals();
     modalOnline.classList.remove('hidden');
@@ -594,17 +575,11 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     }
   });
 
-  // Nút Choose character
   document.getElementById('btn-menu-roster').addEventListener('click', () => {
     closeAllModals();
     modalRoster.classList.remove('hidden');
   });
-  document.getElementById('btn-bb-emoji').addEventListener('click', () => {
-    closeAllModals();
-    modalRoster.classList.remove('hidden');
-  });
 
-  // Nút How to play
   document.getElementById('btn-menu-help').addEventListener('click', () => {
     closeAllModals();
     modalHow.classList.remove('hidden');
@@ -614,13 +589,11 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     modalHow.classList.remove('hidden');
   });
 
-  // Nút Settings
   document.getElementById('btn-menu-settings').addEventListener('click', () => {
     closeAllModals();
     modalSettings.classList.remove('hidden');
   });
 
-  // Nút đóng các modal
   document.getElementById('btn-close-bot-modal').addEventListener('click', closeAllModals);
   document.getElementById('btn-close-roster').addEventListener('click', closeAllModals);
   document.getElementById('btn-close-how').addEventListener('click', closeAllModals);
@@ -628,7 +601,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
   document.getElementById('btn-close-settings').addEventListener('click', closeAllModals);
   document.getElementById('btn-settings-done').addEventListener('click', closeAllModals);
 
-  // Chọn độ khó trong modal Bot
+  // Chọn độ khó bot
   const diffCards = document.querySelectorAll('.bb-diff-card');
   diffCards.forEach((card) => {
     card.addEventListener('click', () => {
@@ -639,7 +612,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     });
   });
 
-  // Bắt đầu đánh bot
+  // Bắt đầu vào trận
   document.getElementById('btn-start-bot-match').addEventListener('click', () => {
     closeAllModals();
     document.getElementById('main-menu').classList.add('hidden');
@@ -657,7 +630,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     onStartGame(selectedDiff, selectedChar);
   });
 
-  // Chọn nhân vật trong roster
+  // Chọn nhân vật
   const rosterCards = document.querySelectorAll('.roster-card');
   rosterCards.forEach((card) => {
     card.addEventListener('click', () => {
@@ -682,7 +655,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
   });
 
   // ==========================================
-  // XỬ LÝ PHÒNG ONLINE MULTIPLAYER (FIREBASE)
+  // XỬ LÝ PHÒNG MULTIPLAYER
   // ==========================================
   const displayRoomCode = document.getElementById('display-room-code');
   const roomStatusNote = document.getElementById('room-status-note');
@@ -694,7 +667,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
   network.on('roomUpdated', (room) => {
     modalOnline.classList.remove('hidden');
     displayRoomCode.innerText = room.id;
-    document.getElementById('room-mode-tag').innerText = `ONLINE ${room.mode.toUpperCase()} REALTIME`;
+    document.getElementById('room-mode-tag').innerText = `ĐẤU MẠNG ${room.mode.toUpperCase()} REALTIME`;
 
     let html = '';
     const yourSlot = room.players.findIndex((p) => p.id === network.playerId);
@@ -764,28 +737,24 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     gameManager.startGame('pro', room.mode, yourSlot);
   });
 
-  // Nút 1-chạm sao chép link mời bạn bè
   document.getElementById('btn-copy-invite-link').addEventListener('click', () => {
     const code = displayRoomCode.innerText;
     const inviteUrl = `${window.location.origin}${window.location.pathname}?room=${code}`;
     navigator.clipboard.writeText(inviteUrl).then(() => {
-      alert(`Đã sao chép link mời bạn:\n${inviteUrl}\n\nBạn bè chỉ cần bấm link là vào thẳng phòng!`);
+      alert(`Đã sao chép link mời bạn bè:\n${inviteUrl}\n\nBạn bè chỉ cần bấm link là vào thẳng phòng!`);
     }).catch(() => {
       alert(`Mã phòng của bạn: ${code}`);
     });
   });
 
-  // Tạo phòng mới 1v1
   document.getElementById('btn-create-room-1v1').addEventListener('click', () => {
     network.createRoom('1v1', playerName, selectedChar.avatar, selectedChar.color);
   });
 
-  // Ghép nhanh 1v1
   document.getElementById('btn-quick-match-1v1').addEventListener('click', () => {
     network.quickMatch('1v1', playerName, selectedChar.avatar, selectedChar.color);
   });
 
-  // Vào phòng bằng mã 4 ký tự
   document.getElementById('btn-join-room').addEventListener('click', () => {
     const code = document.getElementById('room-code-input').value.trim();
     if (code.length >= 3) {
@@ -795,24 +764,21 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     }
   });
 
-  // Sẵn sàng trong phòng online
   btnRoomReady.addEventListener('click', () => {
     network.toggleReady();
   });
 
-  // Bắt đầu trận online (Host)
   btnHostStart.addEventListener('click', () => {
     network.startGame();
   });
 
-  // Rời phòng online
   document.getElementById('btn-leave-room').addEventListener('click', () => {
     network.leaveRoom();
     modalOnline.classList.add('hidden');
   });
 
   // ==========================================
-  // HUD VÀ NÚT ĐIỀU KHIỂN TRẬN ĐẤU
+  // HUD VÀ NÚT ĐIỀU KHIỂN
   // ==========================================
   document.getElementById('btn-toggle-hints').addEventListener('click', () => {
     const hints = document.getElementById('pc-hints');
@@ -841,35 +807,53 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     document.getElementById('main-menu').classList.remove('hidden');
   });
 
-  // CẢM ỨNG MOBILE PRO (SPORT CONTROLS)
-  if (isTouchDevice) {
-    const btnHit = document.getElementById('btn-hit');
-    const btnSmash = document.getElementById('btn-smash');
-    const btnDrop = document.getElementById('btn-drop');
-    const btnDive = document.getElementById('btn-dive');
+  // ==========================================
+  // ĐIỀU KHIỂN CẢM ỨNG MOBILE SIÊU TIỆN LỢI (ZERO UGLY BUTTONS)
+  // VUỐT NGÓN TAY ĐỂ DI CHUYỂN · CHẠM (TAP) ĐỂ ĐẬP CẦU
+  // ==========================================
+  let touchActive = false;
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchStartTime = 0;
 
-    const bindTouchAction = (elem, actionFn) => {
-      if (!elem) return;
-      elem.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        elem.classList.add('btn-pressed');
-        actionFn();
-      }, { passive: false });
+  window.addEventListener('touchstart', (e) => {
+    if (e.target.closest('#main-menu') || e.target.closest('.modal-overlay') || e.target.closest('.hud-hint-btn')) {
+      return;
+    }
+    if (gameManager.state !== 'MENU') {
+      const t = e.touches[0];
+      touchActive = true;
+      touchStartX = t.clientX;
+      touchStartY = t.clientY;
+      touchStartTime = Date.now();
+    }
+  }, { passive: true });
 
-      elem.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        elem.classList.remove('btn-pressed');
-      }, { passive: false });
-    };
+  window.addEventListener('touchmove', (e) => {
+    if (!touchActive || gameManager.state === 'MENU') return;
+    const t = e.touches[0];
+    const dx = (t.clientX - touchStartX) / 45;
+    const dy = (t.clientY - touchStartY) / 45;
+    gameManager.joystickVector.x = Math.max(-1, Math.min(1, dx));
+    gameManager.joystickVector.z = Math.max(-1, Math.min(1, dy));
+  }, { passive: true });
 
-    bindTouchAction(btnHit, () => gameManager.attemptSmartHit());
-    bindTouchAction(btnSmash, () => gameManager.attemptPlayerHit('smash'));
-    bindTouchAction(btnDrop, () => gameManager.attemptPlayerHit('drop'));
-    bindTouchAction(btnDive, () => gameManager.attemptPlayerDive());
+  window.addEventListener('touchend', (e) => {
+    if (!touchActive) return;
+    touchActive = false;
+    const duration = Date.now() - touchStartTime;
+    gameManager.joystickVector.x = 0;
+    gameManager.joystickVector.z = 0;
 
-    setupVirtualJoystick(gameManager);
-  }
+    // Chạm nhanh (Tap) -> Tự động đánh cầu / phát cầu thông minh
+    if (duration < 300 && gameManager.state !== 'MENU') {
+      if (gameManager.state === 'SERVE') {
+        gameManager.playerServe();
+      } else {
+        gameManager.attemptSmartHit();
+      }
+    }
+  }, { passive: true });
 
   // Tùy chọn SFX & Smart Assist
   let sfxEnabled = true;
@@ -952,84 +936,4 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
       }
     }
   };
-}
-
-function setupVirtualJoystick(gameManager) {
-  const zone = document.getElementById('joystick-zone');
-  const base = document.getElementById('joystick-base');
-  const thumb = document.getElementById('joystick-thumb');
-  if (!zone || !base || !thumb) return;
-
-  let activeTouchId = null;
-  let baseRect = null;
-  const maxRadius = 45;
-
-  const handleStart = (clientX, clientY, touchId) => {
-    activeTouchId = touchId;
-    baseRect = base.getBoundingClientRect();
-    handleMove(clientX, clientY);
-  };
-
-  const handleMove = (clientX, clientY) => {
-    if (!baseRect) return;
-    const centerX = baseRect.left + baseRect.width / 2;
-    const centerY = baseRect.top + baseRect.height / 2;
-
-    const dx = clientX - centerX;
-    const dy = clientY - centerY;
-    const dist = Math.hypot(dx, dy);
-
-    const angle = Math.atan2(dy, dx);
-    const clampedDist = Math.min(dist, maxRadius);
-
-    const thumbX = Math.cos(angle) * clampedDist;
-    const thumbY = Math.sin(angle) * clampedDist;
-
-    thumb.style.transform = `translate(${thumbX}px, ${thumbY}px)`;
-
-    const normDist = clampedDist / maxRadius;
-    gameManager.joystickVector.x = (thumbX / maxRadius) * normDist;
-    gameManager.joystickVector.z = (thumbY / maxRadius) * normDist;
-  };
-
-  const handleEnd = () => {
-    activeTouchId = null;
-    baseRect = null;
-    thumb.style.transform = 'translate(0px, 0px)';
-    gameManager.joystickVector.x = 0;
-    gameManager.joystickVector.z = 0;
-  };
-
-  zone.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    if (activeTouchId === null) {
-      const touch = e.changedTouches[0];
-      handleStart(touch.clientX, touch.clientY, touch.identifier);
-    }
-  }, { passive: false });
-
-  zone.addEventListener('touchmove', (e) => {
-    e.preventDefault();
-    for (let i = 0; i < e.changedTouches.length; i++) {
-      const touch = e.changedTouches[i];
-      if (touch.identifier === activeTouchId) {
-        handleMove(touch.clientX, touch.clientY);
-        break;
-      }
-    }
-  }, { passive: false });
-
-  zone.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    for (let i = 0; i < e.changedTouches.length; i++) {
-      if (e.changedTouches[i].identifier === activeTouchId) {
-        handleEnd();
-        break;
-      }
-    }
-  }, { passive: false });
-
-  zone.addEventListener('touchcancel', (e) => {
-    handleEnd();
-  }, { passive: false });
 }
