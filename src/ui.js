@@ -212,6 +212,9 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
           <button id="btn-menu-roster" class="bb-pill-btn">
             <span>👕 Chọn Nhân Vật</span>
           </button>
+          <button id="btn-menu-equip" class="bb-pill-btn">
+            <span>⚡ Vợt & Vệt Sáng</span>
+          </button>
           <button id="btn-menu-help" class="bb-pill-btn">
             <span>📖 Hướng Dẫn Chơi</span>
           </button>
@@ -292,7 +295,12 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
           <h3>CHỌN ĐỘ KHÓ ĐỐI THỦ</h3>
           <button id="btn-close-bot-modal" class="btn-close-x">✕</button>
         </div>
-        <p class="bb-modal-sub">Chọn cấp độ thử thách của đối thủ AI:</p>
+        <!-- CHỌN THỂ THỨC THI ĐẤU -->
+        <div class="match-mode-selector">
+          <button class="btn-match-mode-tab active" data-mode="1v1" id="tab-bot-1v1">🏸 ĐẤU ĐƠN 1v1</button>
+          <button class="btn-match-mode-tab" data-mode="2v2" id="tab-bot-2v2">👥 ĐẤU ĐÔI 2v2</button>
+        </div>
+        <p class="bb-modal-sub">Chọn cấp độ thử thách của đối thủ:</p>
         <div class="bb-diff-stack">
           <button class="bb-diff-card" data-diff="rookie">
             <span class="bb-diff-icon">🌱</span>
@@ -380,6 +388,84 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
             <button class="btn-select-roster">CHỌN</button>
           </div>
         </div>
+      </div>
+    </div>
+
+    
+    <!-- MODAL TRANG BỊ VỢT & VỆT SÁNG ĐUÔI CẦU (EQUIPMENT & VFX SHOP) -->
+    <div id="modal-equipment" class="modal-overlay hidden">
+      <div class="bb-modal-box equipment-modal-box">
+        <div class="bb-modal-header">
+          <div class="header-with-badge">
+            <span class="modal-icon-badge">⚡</span>
+            <div>
+              <h3>TRANG BỊ & VỆT SÁNG</h3>
+              <p class="bb-modal-sub">Tùy biến vợt thi đấu và vệt cầu phát sáng</p>
+            </div>
+          </div>
+          <button id="btn-close-equip" class="btn-close-x">✕</button>
+        </div>
+
+        <!-- MỤC 1: SKIN VỢT THI ĐẤU -->
+        <div class="equip-section">
+          <h4 class="equip-sec-title">🏸 MÀU KHUNG VỢT THỂ THAO</h4>
+          <div class="equip-grid" id="racket-skin-grid">
+            <button class="equip-card active" data-racket="titan">
+              <span class="equip-color-dot" style="background: linear-gradient(135deg, #fef08a, #ca8a04); border-color: #facc15;"></span>
+              <strong>Vàng Titan</strong>
+              <span class="equip-tag">MẠ VÀNG 9999</span>
+            </button>
+            <button class="equip-card" data-racket="laser">
+              <span class="equip-color-dot" style="background: linear-gradient(135deg, #fca5a5, #dc2626); border-color: #ef4444;"></span>
+              <strong>Đỏ Laser</strong>
+              <span class="equip-tag">CHIẾN BINH</span>
+            </button>
+            <button class="equip-card" data-racket="cyan">
+              <span class="equip-color-dot" style="background: linear-gradient(135deg, #67e8f9, #0891b2); border-color: #06b6d4;"></span>
+              <strong>Cyan Neon</strong>
+              <span class="equip-tag">CYBERPUNK</span>
+            </button>
+            <button class="equip-card" data-racket="sakura">
+              <span class="equip-color-dot" style="background: linear-gradient(135deg, #fbcfe8, #db2777); border-color: #ec4899;"></span>
+              <strong>Hồng Sakura</strong>
+              <span class="equip-tag">PASTEL CUTE</span>
+            </button>
+            <button class="equip-card" data-racket="classic">
+              <span class="equip-color-dot" style="background: linear-gradient(135deg, #93c5fd, #1d4ed8); border-color: #2563eb;"></span>
+              <strong>Xanh Thể Thao</strong>
+              <span class="equip-tag">TIÊU CHUẨN</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- MỤC 2: VỆT SÁNG ĐUÔI CẦU -->
+        <div class="equip-section">
+          <h4 class="equip-sec-title">✨ HIỆU ỨNG VỆT SÁNG ĐUÔI CẦU</h4>
+          <div class="equip-grid" id="trail-skin-grid">
+            <button class="equip-card" data-trail="rainbow">
+              <span class="equip-trail-preview rainbow-grad">🌈</span>
+              <strong>Cầu Vồng</strong>
+              <span class="equip-tag">7 SẮC QUANG PHỔ</span>
+            </button>
+            <button class="equip-card active" data-trail="neon">
+              <span class="equip-trail-preview neon-grad">⚡</span>
+              <strong>Cyber Neon</strong>
+              <span class="equip-tag">CYAN & TÍM PHÁT SÁNG</span>
+            </button>
+            <button class="equip-card" data-trail="fire">
+              <span class="equip-trail-preview fire-grad">🔥</span>
+              <strong>Hỏa Long</strong>
+              <span class="equip-tag">ĐỎ CAM BỐC LỬA</span>
+            </button>
+            <button class="equip-card" data-trail="classic">
+              <span class="equip-trail-preview classic-grad">🏸</span>
+              <strong>Trắng Bạc</strong>
+              <span class="equip-tag">ÁNH KIM TRUYỀN THỐNG</span>
+            </button>
+          </div>
+        </div>
+
+        <button id="btn-equip-done" class="bb-btn-primary mt-3">LƯU TRANG BỊ NGAY ✓</button>
       </div>
     </div>
 
@@ -478,6 +564,12 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
             </div>
           </div>
           <button id="btn-close-online" class="btn-close-x">✕</button>
+        </div>
+
+        <!-- CHỌN THỂ THỨC ĐẤU ONLINE -->
+        <div class="match-mode-selector online-mode-sel">
+          <button class="btn-match-mode-tab active" data-onlinemode="1v1" id="tab-online-1v1">🏸 ĐƠN 1v1 (2 Người)</button>
+          <button class="btn-match-mode-tab" data-onlinemode="2v2" id="tab-online-2v2">👥 ĐÔI 2v2 (4 Người)</button>
         </div>
 
         <div class="online-options-stack">
@@ -731,6 +823,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
 
   const closeAllModals = () => {
     if (modalOnline) modalOnline.classList.add('hidden');
+    if (modalEquipment) modalEquipment.classList.add('hidden');
     if (modalBotDiff) modalBotDiff.classList.add('hidden');
     if (modalRoster) modalRoster.classList.add('hidden');
     if (modalHow) modalHow.classList.add('hidden');
@@ -826,7 +919,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
       }, 5000);
     }
 
-    onStartGame(selectedDiff, selectedChar);
+    gameManager.startGame(selectedDiff, currentMatchMode === '2v2' ? 'bot-2v2' : 'bot');
   });
 
   // Chọn nhân vật
@@ -966,6 +1059,105 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     });
   }
 
+
+  // ==========================================
+  // XỬ LÝ CHỌN CHẾ ĐỘ 1v1 / 2v2 VÀ TRANG BỊ VỢT / VỆT SÁNG
+  // ==========================================
+  let currentMatchMode = '1v1'; // '1v1' hoặc '2v2'
+  let currentOnlineMode = '1v1';
+
+  // Chuyển tab 1v1 / 2v2 trong Modal Đấu với máy
+  const tabBot1v1 = document.getElementById('tab-bot-1v1');
+  const tabBot2v2 = document.getElementById('tab-bot-2v2');
+  if (tabBot1v1 && tabBot2v2) {
+    tabBot1v1.addEventListener('click', () => {
+      currentMatchMode = '1v1';
+      tabBot1v1.classList.add('active');
+      tabBot2v2.classList.remove('active');
+    });
+    tabBot2v2.addEventListener('click', () => {
+      currentMatchMode = '2v2';
+      tabBot2v2.classList.add('active');
+      tabBot1v1.classList.remove('active');
+    });
+  }
+
+  // Chuyển tab 1v1 / 2v2 trong Modal Online
+  const tabOnline1v1 = document.getElementById('tab-online-1v1');
+  const tabOnline2v2 = document.getElementById('tab-online-2v2');
+  if (tabOnline1v1 && tabOnline2v2) {
+    tabOnline1v1.addEventListener('click', () => {
+      currentOnlineMode = '1v1';
+      tabOnline1v1.classList.add('active');
+      tabOnline2v2.classList.remove('active');
+    });
+    tabOnline2v2.addEventListener('click', () => {
+      currentOnlineMode = '2v2';
+      tabOnline2v2.classList.add('active');
+      tabOnline1v1.classList.remove('active');
+    });
+  }
+
+  // Modal Trang Bị & Vệt Sáng
+  const modalEquipment = document.getElementById('modal-equipment');
+  const btnMenuEquip = document.getElementById('btn-menu-equip');
+  if (btnMenuEquip) {
+    btnMenuEquip.addEventListener('click', () => {
+      closeAllModals();
+      if (modalEquipment) modalEquipment.classList.remove('hidden');
+    });
+  }
+
+  const btnCloseEquip = document.getElementById('btn-close-equip');
+  if (btnCloseEquip) {
+    btnCloseEquip.addEventListener('click', () => {
+      if (modalEquipment) modalEquipment.classList.add('hidden');
+    });
+  }
+  const btnEquipDone = document.getElementById('btn-equip-done');
+  if (btnEquipDone) {
+    btnEquipDone.addEventListener('click', () => {
+      if (modalEquipment) modalEquipment.classList.add('hidden');
+      showGameToast('Đã lưu trang bị vợt & hiệu ứng vệt sáng!', 'success');
+    });
+  }
+
+  // Chọn Skin Vợt
+  const racketCards = document.querySelectorAll('#racket-skin-grid .equip-card');
+  const savedRacket = localStorage.getItem('tboy_racket_skin') || 'titan';
+  racketCards.forEach((card) => {
+    if (card.dataset.racket === savedRacket) card.classList.add('active');
+    else card.classList.remove('active');
+
+    card.addEventListener('click', () => {
+      racketCards.forEach((c) => c.classList.remove('active'));
+      card.classList.add('active');
+      const rSkin = card.dataset.racket;
+      if (gameManager.player && gameManager.player.setRacketSkin) {
+        gameManager.player.setRacketSkin(rSkin);
+      }
+      showGameToast(`Đã chọn màu vợt: ${card.querySelector('strong').innerText}`, 'info');
+    });
+  });
+
+  // Chọn Skin Đuôi Cầu
+  const trailCards = document.querySelectorAll('#trail-skin-grid .equip-card');
+  const savedTrail = localStorage.getItem('tboy_trail_skin') || 'neon';
+  trailCards.forEach((card) => {
+    if (card.dataset.trail === savedTrail) card.classList.add('active');
+    else card.classList.remove('active');
+
+    card.addEventListener('click', () => {
+      trailCards.forEach((c) => c.classList.remove('active'));
+      card.classList.add('active');
+      const tSkin = card.dataset.trail;
+      if (gameManager.shuttlecock && gameManager.shuttlecock.setTrailSkin) {
+        gameManager.shuttlecock.setTrailSkin(tSkin);
+      }
+      showGameToast(`Đã kích hoạt vệt sáng: ${card.querySelector('strong').innerText}`, 'success');
+    });
+  });
+
   // 3 LỰA CHỌN TRONG SẢNH ĐẤU MẠNG ONLINE (GHÉP NHANH / TẠO PHÒNG / NHẬP MÃ)
   const btnOptQuick = document.getElementById('btn-opt-quick');
   if (btnOptQuick) {
@@ -975,7 +1167,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
       if (roomStatusNote) roomStatusNote.innerText = 'Đang tìm đối thủ trực tuyến trên Firebase...';
       if (onlineViewLobby) onlineViewLobby.classList.add('hidden');
       if (onlineViewRoom) onlineViewRoom.classList.remove('hidden');
-      network.quickMatch('1v1', playerName, selectedChar.avatar, selectedChar.color);
+      network.quickMatch(currentOnlineMode, playerName, selectedChar.avatar, selectedChar.color);
     });
   }
 
@@ -987,7 +1179,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
       if (roomStatusNote) roomStatusNote.innerText = 'Đang tạo phòng thi đấu trên Firebase...';
       if (onlineViewLobby) onlineViewLobby.classList.add('hidden');
       if (onlineViewRoom) onlineViewRoom.classList.remove('hidden');
-      network.createRoom('1v1', playerName, selectedChar.avatar, selectedChar.color);
+      network.createRoom(currentOnlineMode, playerName, selectedChar.avatar, selectedChar.color);
     });
   }
 

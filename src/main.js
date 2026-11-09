@@ -65,17 +65,43 @@ const player = new Character({
 });
 scene.add(player.group);
 
-// 4. Khởi tạo Đối thủ Máy (Bot ở Z < 0, chú chim tím pastel)
+// 3b. Khởi tạo Đồng đội Đánh đôi (Teammate - Chibi Lam siêu tốc độ)
+const teammate = new Character({
+  color: 0x38bdf8,
+  secondaryColor: 0xf0f9ff,
+  jerseyColor: 0x0284c7,
+  jerseyNumber: '9',
+  name: 'Đồng Đội',
+  isPlayer: true,
+  initialPos: new THREE.Vector3(-1.2, 0, 3.2)
+});
+teammate.group.visible = false;
+scene.add(teammate.group);
+
+// 4. Khởi tạo Đối thủ Máy 1 (Bot 1 ở Z < 0, chú chim tím)
 const bot = new Character({
   color: 0xc084fc,
   secondaryColor: 0xfdf4ff,
   jerseyColor: 0xf472b6,
   jerseyNumber: '2',
-  name: 'Birdie Tím',
+  name: 'Bot 1',
   isPlayer: false,
   initialPos: new THREE.Vector3(-0.8, 0, -4.2)
 });
 scene.add(bot.group);
+
+// 4b. Khởi tạo Đối thủ Máy 2 (Bot 2 ở Z < 0, chú chim cam smash búa bổ)
+const bot2 = new Character({
+  color: 0xfb923c,
+  secondaryColor: 0xffedd5,
+  jerseyColor: 0xc2410c,
+  jerseyNumber: '88',
+  name: 'Bot 2',
+  isPlayer: false,
+  initialPos: new THREE.Vector3(1.0, 0, -3.2)
+});
+bot2.group.visible = false;
+scene.add(bot2.group);
 
 // 5. Khởi tạo Quả cầu lông (Shuttlecock)
 const shuttlecock = new Shuttlecock();
@@ -96,7 +122,10 @@ const gameManager = new GameManager({
   scene,
   camera,
   player,
+  teammate,
   bot,
+  bot2,
+  court,
   shuttlecock,
   particles,
   onUIUpdate: (data) => {
@@ -164,17 +193,21 @@ function animate() {
     const dt = Math.min(clock.getDelta(), 0.05);
     const elapsed = clock.getElapsedTime();
 
-    // Cập nhật hoạt cảnh khán giả
-    if (court.update) court.update(elapsed);
+    // Cập nhật hoạt cảnh khán giả & trọng tài (nhìn theo quả cầu)
+    if (court.update) court.update(elapsed, dt, shuttlecock.position);
 
-    // Cập nhật quả cầu lông
+    // Cập nhật quả cầu lông & vệt sáng
     shuttlecock.update(dt);
 
     // Cập nhật hạt hiệu ứng
     particles.update(dt);
 
-    // Nếu đang đánh với bot ở trạng thái RALLY
-    if (!gameManager.isMultiplayer && gameManager.state === 'RALLY') {
+    // Cập nhật animation các nhân vật
+    if (teammate.group.visible) teammate.update(dt);
+    if (bot2.group.visible) bot2.update(dt);
+
+    // Cập nhật Bot AI 1v1
+    if (!gameManager.isMultiplayer && !gameManager.isDoubles && gameManager.state === 'RALLY') {
       botAI.update(dt, player.group.position);
     } else if (!gameManager.isMultiplayer && gameManager.state === 'SERVE') {
       bot.update(dt);

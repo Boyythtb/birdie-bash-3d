@@ -355,7 +355,7 @@ export function createCourt() {
   group.add(bannerMesh);
 
   // ==========================================================
-  // GHẾ TRỌNG TÀI BÊN CẠNH LƯỚI (REFEREE HIGH CHAIR)
+  // GHẾ & TRỌNG TÀI 3D CHÍNH THỨC (PRO REFEREE HIGH CHAIR)
   // ==========================================================
   const refGroup = new THREE.Group();
   const refMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.3 }); // Xanh đậm
@@ -385,6 +385,91 @@ export function createCourt() {
   const backrest = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.45, 0.05), refMat);
   backrest.position.set(0, 2.45, 0.25);
   refGroup.add(backrest);
+
+  // --- TRỌNG TÀI CHIBI 3D NGỒI TRÊN GHẾ (REFEREE CHARACTER) ---
+  const refereeGroup = new THREE.Group();
+  refereeGroup.position.set(0, 2.15, 0);
+
+  // 1. Thân áo sọc đen trắng chuẩn trọng tài quốc tế
+  const stripeCanvas = document.createElement('canvas');
+  stripeCanvas.width = 64;
+  stripeCanvas.height = 64;
+  const sctx = stripeCanvas.getContext('2d');
+  sctx.fillStyle = '#ffffff';
+  sctx.fillRect(0, 0, 64, 64);
+  sctx.fillStyle = '#0f172a';
+  for (let x = 0; x < 64; x += 16) {
+    sctx.fillRect(x, 0, 8, 64);
+  }
+  const stripeTex = new THREE.CanvasTexture(stripeCanvas);
+  stripeTex.wrapS = THREE.RepeatWrapping;
+  stripeTex.wrapT = THREE.RepeatWrapping;
+
+  const refBody = new THREE.Mesh(
+    new THREE.SphereGeometry(0.24, 14, 14),
+    new THREE.MeshStandardMaterial({ map: stripeTex, roughness: 0.5 })
+  );
+  refBody.scale.set(0.9, 1.1, 0.85);
+  refBody.position.y = 0.22;
+  refereeGroup.add(refBody);
+
+  // 2. Đầu trọng tài (Pivot để xoay nhìn theo bóng)
+  const refHeadPivot = new THREE.Group();
+  refHeadPivot.position.set(0, 0.48, 0);
+  refereeGroup.add(refHeadPivot);
+
+  const refHead = new THREE.Mesh(
+    new THREE.SphereGeometry(0.20, 16, 16),
+    new THREE.MeshStandardMaterial({ color: 0xfde047, roughness: 0.4 })
+  );
+  refHeadPivot.add(refHead);
+
+  // Mũ lưỡi trai xanh đen của trọng tài
+  const capMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.21, 14, 14, 0, Math.PI * 2, 0, Math.PI / 2),
+    new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3 })
+  );
+  capMesh.position.y = 0.05;
+  refHeadPivot.add(capMesh);
+
+  const visor = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.22, 0.22, 0.03, 12, 1, false, 0, Math.PI),
+    new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3 })
+  );
+  visor.position.set(0, 0.06, -0.12);
+  visor.rotation.x = 0.2;
+  refHeadPivot.add(visor);
+
+  // Kính râm đen ngầu của trọng tài
+  const glasses = new THREE.Mesh(
+    new THREE.BoxGeometry(0.22, 0.06, 0.05),
+    new THREE.MeshBasicMaterial({ color: 0x0f172a })
+  );
+  glasses.position.set(0, 0.02, -0.19);
+  refHeadPivot.add(glasses);
+
+  // Cánh tay cầm còi / cờ hiệu
+  const armL = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.18, 8), refMat);
+  armL.position.set(-0.22, 0.2, 0.05);
+  armL.rotation.z = 0.4;
+  refereeGroup.add(armL);
+
+  const armRPivot = new THREE.Group();
+  armRPivot.position.set(0.22, 0.26, 0.05);
+  refereeGroup.add(armRPivot);
+
+  const armR = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.20, 8), refMat);
+  armR.position.y = -0.09;
+  armRPivot.add(armR);
+
+  // Cờ vàng trọng tài
+  const flagMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+  const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.12), flagMat);
+  flag.position.set(0.08, -0.18, 0);
+  flag.rotation.y = Math.PI / 2;
+  armRPivot.add(flag);
+
+  refGroup.add(refereeGroup);
 
   refGroup.position.set(3.7, 0, 0);
   group.add(refGroup);
@@ -493,12 +578,51 @@ export function createCourt() {
   sunbeam.rotation.y = 0.4;
   group.add(sunbeam);
 
+  let cheerTimer = 0;
+  let flagSignalTimer = 0;
+
   return {
     mesh: group,
     spectators,
-    update: (time) => {
+    refHeadPivot,
+    armRPivot,
+    cheer: (intensity = 1.0) => {
+      cheerTimer = 2.5 * intensity;
+      flagSignalTimer = 1.8 * intensity;
+    },
+    update: (time, dt = 0.016, shuttlePos = null) => {
+      if (cheerTimer > 0) cheerTimer -= dt;
+      if (flagSignalTimer > 0) flagSignalTimer -= dt;
+
+      // 1. Khán giả nhảy múa ăn mừng khi có cheerTimer
+      const isCheering = cheerTimer > 0;
       for (const s of spectators) {
-        s.group.position.y = s.baseY + Math.sin(time * s.speed + s.phase) * 0.08;
+        const bounceAmp = isCheering ? 0.32 : 0.08;
+        const spd = isCheering ? s.speed * 2.2 : s.speed;
+        s.group.position.y = s.baseY + Math.abs(Math.sin(time * spd + s.phase)) * bounceAmp;
+        if (isCheering) {
+          s.group.rotation.y = Math.sin(time * 6 + s.phase) * 0.25;
+        } else {
+          s.group.rotation.y = 0;
+        }
+      }
+
+      // 2. Trọng tài xoay đầu nhìn theo tọa độ quả cầu
+      if (refHeadPivot && shuttlePos) {
+        // Tọa độ tương đối của quả cầu đối với đầu trọng tài (x=3.7, y=2.63, z=0)
+        const dx = shuttlePos.x - 3.7;
+        const dy = shuttlePos.y - 2.63;
+        const dz = shuttlePos.z;
+        const angleY = Math.atan2(dz, -dx); // Xoay quanh trục Y
+        const angleX = THREE.MathUtils.clamp(-dy * 0.25, -0.4, 0.4);
+        refHeadPivot.rotation.y = THREE.MathUtils.lerp(refHeadPivot.rotation.y, angleY + Math.PI / 2, 0.15);
+        refHeadPivot.rotation.x = THREE.MathUtils.lerp(refHeadPivot.rotation.x, angleX, 0.15);
+      }
+
+      // 3. Trọng tài giơ cờ khi có tín hiệu ghi điểm / bắt lỗi
+      if (armRPivot) {
+        const targetArmAngle = (flagSignalTimer > 0) ? -Math.PI * 0.75 : 0;
+        armRPivot.rotation.z = THREE.MathUtils.lerp(armRPivot.rotation.z, targetArmAngle, 0.2);
       }
     }
   };

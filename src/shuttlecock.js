@@ -12,6 +12,7 @@ export class Shuttlecock {
     this.isAirborne = false;
     this.lastHitter = null; // 'player' | 'bot' | 'remote'
     this.shotType = 'clear';
+    this.trailSkin = localStorage.getItem('tboy_trail_skin') || 'neon';
 
     // Dữ liệu dự đoán điểm rơi
     this.predictedLanding = new THREE.Vector3();
@@ -103,17 +104,22 @@ export class Shuttlecock {
     this.indicatorGroup.position.y = 0.01;
   }
 
+  setTrailSkin(skinType) {
+    this.trailSkin = skinType;
+    localStorage.setItem('tboy_trail_skin', skinType);
+  }
+
   buildTrail() {
     this.trailPoints = [];
-    this.maxTrail = 18;
+    this.maxTrail = 32; // Tăng độ dài đuôi cầu
     this.trailGeo = new THREE.BufferGeometry();
     const positions = new Float32Array(this.maxTrail * 3);
     const colors = new Float32Array(this.maxTrail * 3);
 
     for (let i = 0; i < this.maxTrail; i++) {
       colors[i * 3] = 0.05;
-      colors[i * 3 + 1] = 0.65;
-      colors[i * 3 + 2] = 0.95;
+      colors[i * 3 + 1] = 0.85;
+      colors[i * 3 + 2] = 1.0;
     }
 
     this.trailGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -121,12 +127,14 @@ export class Shuttlecock {
 
     this.trailMat = new THREE.LineBasicMaterial({
       vertexColors: true,
-      linewidth: 3,
+      linewidth: 4,
       transparent: true,
-      opacity: 0.85
+      opacity: 0.92,
+      blending: THREE.AdditiveBlending // Hiệu ứng phát sáng Neon rực rỡ
     });
     this.trailLine = new THREE.Line(this.trailGeo, this.trailMat);
     this.trailLine.frustumCulled = false;
+    this.trailTime = 0;
   }
 
   // Đánh hoặc phát cầu
@@ -226,13 +234,7 @@ export class Shuttlecock {
       this.trailPoints.pop();
     }
 
-    let baseR = 0.05, baseG = 0.65, baseB = 0.95;
-    if (this.shotType === 'smash') {
-      baseR = 0.98; baseG = 0.45; baseB = 0.05; // Cam lửa rực
-    } else if (this.shotType === 'drop') {
-      baseR = 0.75; baseG = 0.35; baseB = 0.98; // Tím phong lan
-    }
-
+    this.trailTime = (this.trailTime || 0) + dt;
     const positions = this.trailGeo.attributes.position.array;
     const colors = this.trailGeo.attributes.color.array;
 
@@ -241,11 +243,34 @@ export class Shuttlecock {
       positions[i * 3 + 1] = this.trailPoints[i].y;
       positions[i * 3 + 2] = this.trailPoints[i].z;
 
-      // Độ nhạt dần về đuôi vệt sáng
-      const fade = 1 - (i / this.maxTrail);
-      colors[i * 3] = baseR * fade;
-      colors[i * 3 + 1] = baseG * fade;
-      colors[i * 3 + 2] = baseB * fade;
+      const fade = Math.pow(1 - (i / this.maxTrail), 1.3);
+      let r = 0.1, g = 0.85, b = 1.0; // Mặc định Neon
+
+      if (this.trailSkin === 'rainbow') {
+        // Cầu vồng chuyển sắc liên tục 7 màu
+        const hue = ((this.trailTime * 320 - i * 12) % 360 + 360) % 360;
+        const color = new THREE.Color().setHSL(hue / 360, 1.0, 0.58);
+        r = color.r; g = color.g; b = color.b;
+      } else if (this.trailSkin === 'fire' || this.shotType === 'smash') {
+        // Lửa bốc cháy đỏ cam vàng
+        r = 1.0;
+        g = 0.2 + 0.6 * fade;
+        b = 0.05;
+      } else if (this.trailSkin === 'classic') {
+        // Trắng bạc thể thao
+        r = 0.95; g = 0.98; b = 1.0;
+      } else {
+        // Cyber Neon Cyan & Violet
+        if (this.shotType === 'drop') {
+          r = 0.85; g = 0.2; b = 1.0; // Tím Neon
+        } else {
+          r = 0.05; g = 0.95; b = 1.0; // Cyan phát sáng
+        }
+      }
+
+      colors[i * 3] = r * fade;
+      colors[i * 3 + 1] = g * fade;
+      colors[i * 3 + 2] = b * fade;
     }
 
     this.trailGeo.attributes.position.needsUpdate = true;

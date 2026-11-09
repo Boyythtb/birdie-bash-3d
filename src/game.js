@@ -4,17 +4,21 @@ import { sounds } from './audio.js';
 import { network } from './network.js';
 
 export class GameManager {
-  constructor({ scene, camera, player, bot, shuttlecock, particles, onUIUpdate }) {
+  constructor({ scene, camera, player, teammate, bot, bot2, court, shuttlecock, particles, onUIUpdate }) {
     this.scene = scene;
     this.camera = camera;
     this.player = player;
+    this.teammate = teammate;
     this.bot = bot;
+    this.bot2 = bot2;
+    this.court = court;
     this.shuttlecock = shuttlecock;
     this.particles = particles;
     this.onUIUpdate = onUIUpdate;
 
-    // Chế độ chơi: 'bot' | 'online-1v1' | 'online-2v2'
+    // Chế độ chơi: 'bot' (1v1) | 'bot-2v2' (2v2) | 'online-1v1' | 'online-2v2'
     this.gameMode = 'bot';
+    this.isDoubles = false;
     this.isMultiplayer = false;
     this.multiplayerSlot = 0; // 0: Player 1 (Sân dưới, Z>0), 1: Player 2 (Sân trên, Z<0)
 
@@ -184,12 +188,23 @@ export class GameManager {
   startGame(difficulty = 'pro', mode = 'bot', yourSlot = 0) {
     this.gameMode = mode;
     this.isMultiplayer = mode.startsWith('online');
+    this.isDoubles = mode.includes('2v2');
     this.multiplayerSlot = yourSlot;
     this.playerScore = 0;
     this.botScore = 0;
     this.rallyCount = 0;
     this.maxRally = 0;
     this.currentServer = 'player';
+
+    // Bật/tắt nhân vật đánh đôi
+    if (this.teammate) this.teammate.group.visible = this.isDoubles;
+    if (this.bot2) this.bot2.group.visible = this.isDoubles;
+
+    // Thông báo chế độ
+    if (this.isDoubles) {
+      this.notifyUI('CHẾ ĐỘ ĐÁNH ĐÔI 2 VS 2! 👥', 'Phối hợp cùng đồng đội bao quát toàn bộ sân!', 'info');
+    }
+
     this.setupServe();
   }
 
@@ -217,6 +232,20 @@ export class GameManager {
     this.player.state = 'idle';
     this.bot.group.position.set(botX, 0, -4.6);
     this.bot.state = 'idle';
+
+    // Bố trí vị trí đồng đội & bot 2 trong chế độ Đánh Đôi 2v2 (1 người trước 1 người sau)
+    if (this.isDoubles) {
+      if (this.teammate) {
+        // Đồng đội đứng bám lưới ở nửa sân bên kia
+        this.teammate.group.position.set(-playerX * 0.7, 0, 3.0);
+        this.teammate.state = 'idle';
+      }
+      if (this.bot2) {
+        // Bot 2 đứng bám lưới đối diện
+        this.bot2.group.position.set(-botX * 0.7, 0, -3.0);
+        this.bot2.state = 'idle';
+      }
+    }
 
     // Cầu đặt ngay trên tay người phát cầu tương ứng
     this.shuttlecock.ground();
@@ -527,7 +556,8 @@ export class GameManager {
       const landX = s.position.x;
       const landZ = s.position.z;
 
-      const isInWidth = Math.abs(landX) <= COURT.HALF_SINGLES_WIDTH;
+      const halfWidth = this.isDoubles ? COURT.HALF_WIDTH : COURT.HALF_SINGLES_WIDTH;
+      const isInWidth = Math.abs(landX) <= halfWidth;
       const isInLength = Math.abs(landZ) <= COURT.HALF_LENGTH;
       const isInside = isInWidth && isInLength;
 
@@ -576,7 +606,9 @@ export class GameManager {
       this.playerScore++;
       this.currentServer = 'player';
       this.player.playAction('celebrate');
+      if (this.teammate && this.isDoubles) this.teammate.playAction('celebrate');
       sounds.playCheer();
+      if (this.court && this.court.cheer) this.court.cheer(1.6); // Khán giả reo hò & Trọng tài giơ cờ
       this.notifyUI('BẠN GHI ĐIỂM! 🏸🎉', `${reason} · Tỷ số: ${this.playerScore} - ${this.botScore}`, 'score-player');
     } else {
       this.botScore++;
@@ -630,6 +662,101 @@ export class GameManager {
     }
   }
 
+
+  // CHIẾN THUẬT ĐÁNH ĐÔI 2v2 (CÔNG - THỦ PHỐI HỢP LINH HOẠT)
+  updateDoubles(dt) {
+    if (!this.isDoubles || this.state !== 'RALLY') return;
+
+    const s = this.shuttlecock;
+    const p = this.player.group.position;
+    const tm = this.teammate;
+    const b1 = this.bot;
+    const b2 = this.bot2;
+
+    // 1. Đồng đội AI tự động bọc lót theo vị trí của người chơi
+    if (tm) {
+      let targetZ = 3.2;
+      let targetX = -p.x * 0.65;
+
+      if (p.z < 4.0) {
+        // Người chơi đang ở trước lưới -> Đồng đội lùi về sau bao quát đáy sân
+        targetZ = 5.2;
+        targetX = -p.x * 0.8;
+      } else {
+        // Người chơi đang lùi sâu -> Đồng đội tiến lên bám lưới bắt cầu con
+        targetZ = 2.8;
+        targetX = -p.x * 0.6;
+      }
+
+      // Nếu cầu đang bay sang sân nhà (z > 0)
+      if (s.isAirborne && s.velocity.z > 0) {
+        const distToPlayer = p.distanceTo(s.position);
+        const distToTeammate = tm.group.position.distanceTo(s.position);
+
+        // Nếu quả cầu gần đồng đội hơn hoặc người chơi ở quá xa
+        if (distToTeammate < distToPlayer || distToPlayer > 3.2) {
+          targetX = THREE.MathUtils.clamp(s.position.x, -2.5, 2.5);
+          targetZ = THREE.MathUtils.clamp(s.position.z, 1.8, 5.8);
+        }
+      }
+
+      const tmPos = tm.group.position;
+      tmPos.x = THREE.MathUtils.lerp(tmPos.x, targetX, dt * 4.8);
+      tmPos.z = THREE.MathUtils.lerp(tmPos.z, targetZ, dt * 4.8);
+
+      // Đồng đội tự động đỡ cầu khi vào tầm vợt
+      const distXZ = new THREE.Vector2(tmPos.x - s.position.x, tmPos.z - s.position.z).length();
+      if (s.isAirborne && s.position.z > 0.4 && distXZ < 1.6 && s.position.y > 0.25 && s.position.y < 3.2) {
+        tm.playAction(s.position.y > 1.8 ? 'smash' : 'swing');
+        sounds.playHit(false);
+        this.particles.emitHit(s.position, 14, false);
+        this.rallyCount++;
+
+        const targetOppX = (Math.random() - 0.5) * 4.4;
+        const targetOppZ = -4.8 + (Math.random() - 0.5) * 1.5;
+        const vel = this.calculateTrajectory(s.position, new THREE.Vector3(targetOppX, 0, targetOppZ), 'clear', 0.95);
+        s.hit({ from: s.position.clone(), velocity: vel, hitter: 'player', shotType: 'clear' });
+        this.notifyUI('ĐỒNG ĐỘI TIẾP CẦU! 🏸', 'Pha phối hợp ăn ý!', 'success');
+      }
+    }
+
+    // 2. Bot 1 và Bot 2 phối hợp phòng thủ & tấn công
+    if (b1 && b2) {
+      // Bot 2 bọc lót theo Bot 1
+      const b1Pos = b1.group.position;
+      const b2Pos = b2.group.position;
+
+      let b2TargetZ = (b1Pos.z > -4.0) ? -5.2 : -2.8;
+      let b2TargetX = -b1Pos.x * 0.7;
+
+      if (s.isAirborne && s.velocity.z < 0) {
+        const dist1 = b1Pos.distanceTo(s.position);
+        const dist2 = b2Pos.distanceTo(s.position);
+        if (dist2 < dist1) {
+          b2TargetX = THREE.MathUtils.clamp(s.position.x, -2.6, 2.6);
+          b2TargetZ = THREE.MathUtils.clamp(s.position.z, -5.8, -1.8);
+        }
+      }
+
+      b2Pos.x = THREE.MathUtils.lerp(b2Pos.x, b2TargetX, dt * 4.5);
+      b2Pos.z = THREE.MathUtils.lerp(b2Pos.z, b2TargetZ, dt * 4.5);
+
+      // Bot 2 đánh trả nếu đến gần
+      const distB2 = new THREE.Vector2(b2Pos.x - s.position.x, b2Pos.z - s.position.z).length();
+      if (s.isAirborne && s.position.z < -0.4 && distB2 < 1.6 && s.position.y > 0.25 && s.position.y < 3.2) {
+        b2.playAction(s.position.y > 1.8 ? 'smash' : 'swing');
+        sounds.playHit(false);
+        this.particles.emitHit(s.position, 14, false);
+        this.rallyCount++;
+
+        const targetPlayerX = (Math.random() - 0.5) * 4.4;
+        const targetPlayerZ = 4.8 + (Math.random() - 0.5) * 1.5;
+        const vel = this.calculateTrajectory(s.position, new THREE.Vector3(targetPlayerX, 0, targetPlayerZ), 'clear', 0.95);
+        s.hit({ from: s.position.clone(), velocity: vel, hitter: 'bot', shotType: 'clear' });
+      }
+    }
+  }
+
   update(dt) {
     this.stateTimer += dt;
 
@@ -659,6 +786,7 @@ export class GameManager {
 
     if (this.state === 'RALLY') {
       this.checkNetCollision();
+    this.updateDoubles(dt);
       this.checkGroundHit();
     }
 

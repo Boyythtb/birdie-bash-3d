@@ -30,7 +30,9 @@ export class Character {
     this.baseRotationY = isPlayer ? Math.PI : 0;
     this.group.rotation.y = this.baseRotationY;
 
+    this.racketSkin = localStorage.getItem('tboy_racket_skin') || 'titan';
     this.buildModel(color, secondaryColor, jerseyColor, jerseyNumber);
+    this.setRacketSkin(this.racketSkin);
   }
 
   buildModel(primaryColor, secondaryColor, jerseyColor, jerseyNumber) {
@@ -218,14 +220,14 @@ export class Character {
     // Khung vợt (Isometric Frame)
     const frameGeo = new THREE.TorusGeometry(0.20, 0.02, 8, 28);
     frameGeo.scale(1, 1.28, 1);
-    const frameMat = new THREE.MeshStandardMaterial({
-      color: 0x0284c7,
-      metalness: 0.85,
+    this.racketFrameMat = new THREE.MeshStandardMaterial({
+      color: 0xfacc15, // Mặc định Vàng Titan
+      metalness: 0.9,
       roughness: 0.15
     });
-    const frame = new THREE.Mesh(frameGeo, frameMat);
-    frame.position.y = 0.82;
-    this.racketGroup.add(frame);
+    this.racketFrame = new THREE.Mesh(frameGeo, this.racketFrameMat);
+    this.racketFrame.position.y = 0.82;
+    this.racketGroup.add(this.racketFrame);
 
     // Mặt lưới vợt (High tension strings)
     const stringCanvas = document.createElement('canvas');
@@ -319,6 +321,27 @@ export class Character {
       this.jerseyMesh.material.color.setHex(jerseyColor);
     }
     if (name) this.name = name;
+  }
+
+  setRacketSkin(skinType) {
+    this.racketSkin = skinType;
+    if (this.isPlayer) {
+      localStorage.setItem('tboy_racket_skin', skinType);
+    }
+    if (!this.racketFrameMat) return;
+
+    const skins = {
+      titan: { color: 0xfacc15, metalness: 0.95, roughness: 0.1 },  // Vàng Titan
+      laser: { color: 0xef4444, metalness: 0.9, roughness: 0.15 },  // Đỏ Laser
+      cyan: { color: 0x06b6d4, metalness: 0.92, roughness: 0.12 },  // Xanh Cyan Neon
+      sakura: { color: 0xf472b6, metalness: 0.85, roughness: 0.2 }, // Hồng Sakura
+      classic: { color: 0x0284c7, metalness: 0.85, roughness: 0.18 } // Xanh Đậm Cổ Điển
+    };
+
+    const s = skins[skinType] || skins.titan;
+    this.racketFrameMat.color.setHex(s.color);
+    this.racketFrameMat.metalness = s.metalness;
+    this.racketFrameMat.roughness = s.roughness;
   }
 
   playAction(action) {
