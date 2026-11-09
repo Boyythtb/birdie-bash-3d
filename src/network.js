@@ -4,6 +4,7 @@ import { firebaseNet, myClientId } from './firebase.js';
 export class NetworkManager {
   constructor() {
     this.clientId = myClientId;
+    this.playerId = myClientId; // Đồng bộ playerId cho UI
     this.isConnected = true;
     this.currentRoom = null;
     this.yourSlot = null;
@@ -14,15 +15,24 @@ export class NetworkManager {
 
   bindFirebaseEvents() {
     firebaseNet.on('roomUpdated', (data) => {
-      this.currentRoom = data.room;
-      this.yourSlot = data.yourSlot;
-      this.emit('roomUpdated', data);
+      const room = data.room || data;
+      if (room) {
+        room.id = room.code || room.id;
+      }
+      this.currentRoom = room;
+      this.yourSlot = data.yourSlot !== undefined ? data.yourSlot : this.yourSlot;
+      this.emit('roomUpdated', room);
     });
 
     firebaseNet.on('matchStart', (data) => {
-      this.currentRoom = data.room;
-      this.yourSlot = data.yourSlot;
-      this.emit('matchStart', data);
+      const room = data.room || data;
+      if (room) {
+        room.id = room.code || room.id;
+      }
+      this.currentRoom = room;
+      this.yourSlot = data.yourSlot !== undefined ? data.yourSlot : this.yourSlot;
+      this.emit('matchStart', room);
+      this.emit('gameStart', room);
     });
 
     firebaseNet.on('remoteMove', (data) => {
@@ -45,7 +55,6 @@ export class NetworkManager {
   on(event, callback) {
     if (!this.callbacks[event]) this.callbacks[event] = [];
     this.callbacks[event].push(callback);
-    // Báo ngay trạng thái connected tới UI
     if (event === 'connected') {
       callback(true);
     }
@@ -53,7 +62,13 @@ export class NetworkManager {
 
   emit(event, data) {
     if (this.callbacks[event]) {
-      this.callbacks[event].forEach((cb) => cb(data));
+      this.callbacks[event].forEach((cb) => {
+        try {
+          cb(data);
+        } catch (e) {
+          console.error('Error in callback for event ' + event, e);
+        }
+      });
     }
   }
 

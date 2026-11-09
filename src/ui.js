@@ -34,13 +34,11 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
       </div>
     </div>
 
-    <!-- 2. HUD TRONG TRẬN ĐẤU (COZY MATCH HUD - CĂN GIỮA ĐỘC LẬP & CÂN ĐỐI 100%) -->
+    <!-- 2. HUD TRONG TRẬN ĐẤU (SCOREBOARD CÂN ĐỐI 100% - TÍCH HỢP ICON CỬA SỔ THOÁT RA LIỀN KHỐI) -->
     <div id="hud" class="hud-top-bar hidden">
-      <!-- NÚT PHÍM TẮT (CHỈ HIỆN TRÊN DESKTOP) -->
-      <button id="btn-toggle-hints" class="hud-ctrl-btn hud-btn-hints" title="Hướng dẫn phím tắt">⌨️ Phím</button>
-
       <!-- VIÊN THUỐC TỶ SỐ TRUNG TÂM (CHÍNH GIỮA TUYỆT ĐỐI) -->
       <div class="match-hud-pill">
+        <!-- ĐỘI BẠN -->
         <div class="hud-player">
           <div class="hud-avatar-box">
             <span id="hud-avatar" class="hud-emoji">🐥</span>
@@ -53,6 +51,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
           <span id="player-score" class="hud-score hud-score-p1">0</span>
         </div>
 
+        <!-- KHỐI GIỮA: VS & RALLY -->
         <div class="hud-center">
           <div class="hud-vs-row">
             <span class="hud-vs">VS</span>
@@ -64,6 +63,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
           </div>
         </div>
 
+        <!-- ĐỐI THỦ -->
         <div class="hud-bot">
           <span id="bot-score" class="hud-score hud-score-bot">0</span>
           <div class="hud-name-col align-right">
@@ -75,10 +75,22 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
             <span id="hud-serve-bot" class="hud-serve-badge hidden" title="Đang giao cầu">🏸</span>
           </div>
         </div>
+
+        <!-- ĐƯỜNG PHÂN CÁCH TINH TẾ -->
+        <div class="hud-pill-divider"></div>
+
+        <!-- ICON CỬA SỔ THOÁT RA NẰM NGAY TRÊN THANH -->
+        <button id="btn-pause-game" class="hud-pill-exit-btn" title="Thoát về màn hình chính" aria-label="Thoát trận">
+          <svg class="exit-window-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+            <polyline points="10 17 15 12 10 7"></polyline>
+            <line x1="15" y1="12" x2="3" y2="12"></line>
+          </svg>
+        </button>
       </div>
 
-      <!-- NÚT THOÁT TRẬN ĐỘC LẬP TINH TẾ GÓC PHẢI -->
-      <button id="btn-pause-game" class="hud-ctrl-btn hud-btn-exit" title="Về màn hình chính">✕</button>
+      <!-- NÚT PHÍM TẮT (ẨN TRÊN MOBILE, CHỈ HIỆN TRÊN DESKTOP) -->
+      <button id="btn-toggle-hints" class="hud-ctrl-btn hud-btn-hints" title="Hướng dẫn phím tắt">⌨️ Phím</button>
     </div>
 
     <!-- POPUP THÔNG BÁO TIMING & GHI ĐIỂM -->
@@ -409,7 +421,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
       </div>
     </div>
 
-    <!-- MODAL ĐẤU MẠNG ONLINE (THIẾT KẾ ĐẲNG CẤP, CÂN ĐỐI CHUẨN APPLE UI) -->
+    <!-- MODAL ĐẤU MẠNG ONLINE (CÓ PHÒNG CHỜ, MÃ PHÒNG TO, QR CODE QUÉT BẰNG CAMERA/ZALO) -->
     <div id="modal-online" class="modal-overlay hidden">
       <!-- VIEW 1: SẢNH CHỌN CHẾ ĐỘ -->
       <div id="online-view-lobby" class="bb-modal-box online-modal-box">
@@ -425,7 +437,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
         </div>
 
         <div class="online-options-stack">
-          <!-- LỰA CHỌN 1: GHÉP NHANH -->
+          <!-- CARD 1: GHÉP NHANH -->
           <div class="online-action-card" id="card-quick-match" role="button" tabindex="0">
             <div class="online-card-icon-box yellow">⚡</div>
             <div class="online-card-body">
@@ -441,7 +453,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
             </button>
           </div>
 
-          <!-- LỰA CHỌN 2: TẠO PHÒNG RIÊNG -->
+          <!-- CARD 2: TẠO PHÒNG RIÊNG -->
           <div class="online-action-card" id="card-create-room" role="button" tabindex="0">
             <div class="online-card-icon-box pink">🏠</div>
             <div class="online-card-body">
@@ -449,7 +461,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
                 <h4 class="online-card-title">Tạo Phòng Thi Đấu</h4>
                 <span class="online-badge pink">Phòng riêng</span>
               </div>
-              <p class="online-card-desc">Nhận mã 4 chữ & link 1-chạm gửi bạn bè</p>
+              <p class="online-card-desc">Có mã phòng 4 chữ, mã QR & link mời bạn bè</p>
             </div>
             <button id="btn-opt-create" class="online-card-btn pink" aria-label="Tạo phòng">
               <span>TẠO</span>
@@ -457,7 +469,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
             </button>
           </div>
 
-          <!-- LỰA CHỌN 3: NHẬP MÃ PHÒNG -->
+          <!-- CARD 3: VÀO BẰNG MÃ PHÒNG -->
           <div class="online-action-card join-code-card">
             <div class="join-header-row">
               <div class="online-card-icon-box blue">🔑</div>
@@ -470,41 +482,63 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
               </div>
             </div>
             <div class="join-input-bar">
-              <input type="text" id="room-code-input" class="room-code-input" placeholder="NHẬP MÃ 4 CHỮ..." maxlength="6" autocomplete="off" autocorrect="off" autocapitalize="characters" />
+              <input type="text" id="room-code-input" class="room-code-input" placeholder="NHẬP MÃ (VD: AB12)" maxlength="6" autocomplete="off" autocorrect="off" autocapitalize="characters" />
               <button id="btn-join-room" class="btn-join-action">VÀO PHÒNG ➜</button>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- VIEW 2: PHÒNG CHỜ (CHỈ HIỆN KHI ĐÃ TẠO HOẶC ĐÃ VÀO PHÒNG) -->
+      <!-- VIEW 2: PHÒNG CHỜ VIP (HIỂN THỊ MÃ PHÒNG TO, QR CODE QUÉT BẰNG CAMERA & SLOTS ĐẤU THỦ) -->
       <div id="online-view-room" class="online-room-box hidden">
         <div class="room-vip-header">
-          <div class="room-badge-gold">
-            <span class="room-crown">👑</span>
-            <div class="room-code-group">
-              <span class="room-code-sub">MÃ PHÒNG THI ĐẤU</span>
+          <div class="room-header-left">
+            <span class="room-live-dot"></span>
+            <span id="room-mode-tag" class="room-mode-tag">PHÒNG ĐẤU 1v1 REALTIME</span>
+          </div>
+          <button id="btn-leave-room" class="btn-room-leave">
+            <span>Rời phòng</span>
+            <span>✕</span>
+          </button>
+        </div>
+
+        <!-- KHỐI MÃ PHÒNG & QR CODE QUÉT VÀO SÂN -->
+        <div class="room-invite-card">
+          <div class="room-code-badge-wrap">
+            <span class="room-code-label">MÃ PHÒNG CỦA BẠN</span>
+            <div class="room-code-display-row">
               <span id="display-room-code" class="room-code-huge">----</span>
+              <button id="btn-copy-code-only" class="btn-mini-copy" title="Sao chép mã">📋 Chép mã</button>
             </div>
           </div>
-          <button id="btn-leave-room" class="btn-room-leave">✕ Rời phòng</button>
-        </div>
 
-        <!-- NÚT 1 CHẠM SAO CHÉP LINK MỜI BẠN BÈ -->
-        <button id="btn-copy-invite-link" class="btn-copy-link-vip">
-          <span class="copy-link-icon">🔗</span>
-          <div class="copy-link-text">
-            <span class="copy-link-main">SAO CHÉP LINK MỜI BẠN BÈ</span>
-            <span class="copy-link-sub">Bấm 1 chạm để gửi link qua Zalo / Messenger</span>
+          <!-- KHUNG MÃ QR CODE CHÍNH HÃNG -->
+          <div class="room-qr-section">
+            <div class="room-qr-frame">
+              <img id="room-qr-img" class="room-qr-img" src="" alt="Mã QR Phòng Đấu" />
+            </div>
+            <div class="room-qr-text">
+              <strong class="qr-title">📱 Quét QR để vào sân ngay</strong>
+              <span class="qr-sub">Mở Camera iPhone / Android hoặc Zalo quét mã này</span>
+            </div>
           </div>
-          <span class="copy-link-tag">1-CHẠM 📋</span>
-        </button>
 
-        <div class="room-match-info">
-          <span id="room-mode-tag" class="room-mode-tag">ĐẤU MẠNG 1v1 REALTIME</span>
-          <p id="room-status-note" class="room-status-note">Đang chờ đối thủ vào phòng...</p>
+          <!-- NÚT 1 CHẠM SAO CHÉP LINK MỜI BẠN BÈ -->
+          <button id="btn-copy-invite-link" class="btn-copy-link-vip">
+            <span class="copy-link-icon">🔗</span>
+            <div class="copy-link-text">
+              <span class="copy-link-main">SAO CHÉP LINK MỜI BẠN BÈ</span>
+              <span class="copy-link-sub">Bấm để gửi qua Zalo, Messenger, SMS</span>
+            </div>
+            <span class="copy-link-tag">1-CHẠM 📋</span>
+          </button>
         </div>
 
+        <div class="room-status-bar">
+          <span id="room-status-note" class="room-status-note">Đang chờ bạn bè quét QR hoặc nhập mã...</span>
+        </div>
+
+        <!-- 2 KHUNG TUYỂN THỦ -->
         <div class="room-players-slots" id="room-players-container">
           <!-- Render danh sách slot người chơi từ roomUpdated -->
         </div>
@@ -514,7 +548,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
             <span id="txt-room-ready">SẴN SÀNG CHIẾN ĐẤU 🔥</span>
           </button>
           <button id="btn-host-start" class="bb-btn-primary btn-host-start pulse-start hidden">
-            <span>BẮT ĐẦU TRẬN NGAY ➜</span>
+            <span>BẮT ĐẦU TRANH TÀI NGAY ➜</span>
           </button>
         </div>
       </div>
@@ -761,78 +795,88 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     if (onlineViewLobby) onlineViewLobby.classList.add('hidden');
     if (onlineViewRoom) onlineViewRoom.classList.remove('hidden');
 
-    displayRoomCode.innerText = room.id;
-    document.getElementById('room-mode-tag').innerText = `ĐẤU MẠNG ${room.mode.toUpperCase()} REALTIME`;
+    const roomCode = room.code || room.id || '----';
+    displayRoomCode.innerText = roomCode;
+
+    // Sinh mã QR Code trực tiếp theo URL phòng
+    const qrImg = document.getElementById('room-qr-img');
+    if (qrImg && roomCode !== '----') {
+      const inviteUrl = `${window.location.origin}${window.location.pathname}?room=${roomCode}`;
+      qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(inviteUrl)}&color=0f172a&bgcolor=ffffff`;
+    }
+
+    const modeStr = (room.mode || '1v1').toUpperCase();
+    const modeTag = document.getElementById('room-mode-tag');
+    if (modeTag) modeTag.innerText = `PHÒNG ĐẤU ${modeStr} REALTIME`;
+
+    const playersList = Array.isArray(room.players) ? room.players : Object.values(room.players || {});
+    const maxPlayers = room.maxPlayers || 2;
 
     let html = '';
-    const yourSlot = room.players.findIndex((p) => p.id === network.playerId);
+    const myId = network.playerId || network.clientId;
+    const yourSlot = playersList.findIndex((p) => p && p.id === myId);
     const isHost = yourSlot === 0;
 
-    room.players.forEach((p, idx) => {
-      const isYou = p.id === network.playerId;
+    playersList.forEach((p, idx) => {
+      if (!p) return;
+      const isYou = p.id === myId;
       const isHostP = idx === 0;
       html += `
         <div class="room-slot ${p.ready ? 'ready' : ''}">
           <span class="slot-avatar">${p.avatar || '🐥'}</span>
           <div class="slot-text">
-            <span class="slot-name">${p.name} ${isYou ? '(Bạn)' : ''}</span>
-            <span class="slot-role ${isHostP ? 'host' : ''}">${isHostP ? '🏠 Chủ phòng · ' : '✈️ '}Đội ${p.team}</span>
+            <span class="slot-name">${p.name || 'Người chơi'} ${isYou ? '(Bạn)' : ''}</span>
+            <span class="slot-role ${isHostP ? 'host' : ''}">${isHostP ? '👑 Chủ phòng' : '⚡ Đối thủ'} · Đội ${p.team || (idx + 1)}</span>
           </div>
-          <span class="slot-badge ${p.ready ? 'ready' : 'wait'}">${p.ready ? 'SẴN SÀNG' : 'CHƯA'}</span>
+          <span class="slot-badge ${p.ready ? 'ready' : 'wait'}">${p.ready ? 'SẴN SÀNG ✅' : 'CHƯA'}</span>
         </div>
       `;
     });
 
-    for (let i = room.players.length; i < room.maxPlayers; i++) {
+    for (let i = playersList.length; i < maxPlayers; i++) {
       html += `
         <div class="room-slot empty">
           <span class="slot-avatar">⏳</span>
           <div class="slot-text">
-            <span class="slot-name">Đang chờ đối thủ vào phòng...</span>
-            <span class="slot-role">✈️ Đội ${room.mode === '2v2' ? (i < 2 ? 1 : 2) : 2}</span>
+            <span class="slot-name">Đang chờ bạn bè quét QR / vào phòng...</span>
+            <span class="slot-role">📱 Quét mã QR hoặc nhập mã ${roomCode}</span>
           </div>
-          <span class="slot-badge wait">CHỜ</span>
+          <span class="slot-badge wait">ĐANG CHỜ</span>
         </div>
       `;
     }
     roomPlayersContainer.innerHTML = html;
 
-    const me = room.players[yourSlot];
-    if (me) {
+    const me = playersList[yourSlot];
+    if (me && txtRoomReady) {
       txtRoomReady.innerText = me.ready ? 'HỦY SẴN SÀNG ✕' : 'SẴN SÀNG CHIẾN ĐẤU 🔥';
     }
 
-    const allReady = room.players.length >= 2 && room.players.every((p) => p.ready);
+    const allReady = playersList.length >= 2 && playersList.every((p) => p && p.ready);
     if (isHost && allReady) {
       btnHostStart.classList.remove('hidden');
-      roomStatusNote.innerText = '🔥 Tất cả đã sẵn sàng! Bấm BẮT ĐẦU TRẬN NGAY!';
+      roomStatusNote.innerText = '🔥 Cả 2 đã sẵn sàng! Bấm BẮT ĐẦU TRANH TÀI NGAY!';
     } else {
       btnHostStart.classList.add('hidden');
-      roomStatusNote.innerText = room.players.length < room.maxPlayers
-        ? 'Đang chờ đối thủ vào phòng...'
-        : 'Đang chờ tất cả người chơi nhấn SẴN SÀNG...';
+      roomStatusNote.innerText = playersList.length < maxPlayers
+        ? '📱 Mời bạn bè quét mã QR trên màn hình hoặc gửi link để vào đấu!'
+        : 'Đang chờ tất cả người chơi bấm SẴN SÀNG...';
     }
   });
 
-  network.on('gameStart', (room) => {
-    modalOnline.classList.add('hidden');
-    document.getElementById('main-menu').classList.add('hidden');
-    document.getElementById('hud').classList.remove('hidden');
-    const inGameControls = document.getElementById('in-game-controls');
-    if (inGameControls) inGameControls.classList.remove('hidden');
-
-    const yourSlot = room.players.findIndex((p) => p.id === network.playerId);
-    const opponent = room.players.find((p) => p.id !== network.playerId);
-
-    document.getElementById('hud-player-name').innerText = playerName.toUpperCase();
-    document.getElementById('hud-avatar').innerText = selectedChar.avatar;
-    if (opponent) {
-      document.getElementById('hud-bot-name').innerText = opponent.name.toUpperCase();
-      document.getElementById('hud-bot-avatar').innerText = opponent.avatar || '🪻';
-    }
-
-    gameManager.startGame('pro', room.mode, yourSlot);
-  });
+  // Nút sao chép riêng mã phòng
+  const btnCopyCodeOnly = document.getElementById('btn-copy-code-only');
+  if (btnCopyCodeOnly) {
+    btnCopyCodeOnly.addEventListener('click', () => {
+      const code = displayRoomCode.innerText.trim();
+      if (!code || code === '----') return;
+      navigator.clipboard.writeText(code).then(() => {
+        alert(`✅ Đã sao chép mã phòng: ${code}`);
+      }).catch(() => {
+        prompt('Mã phòng:', code);
+      });
+    });
+  }
 
   document.getElementById('btn-copy-invite-link').addEventListener('click', () => {
     const code = displayRoomCode.innerText;
@@ -844,38 +888,42 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     });
   });
 
-  // 3 LỰA CHỌN TRONG SẢNH ĐẤU MẠNG ONLINE
-  
-  // Click vào card cũng kích hoạt ghép nhanh / tạo phòng
-  const cardQuick = document.getElementById('card-quick-match');
-  if (cardQuick) {
-    cardQuick.addEventListener('click', (e) => {
-      if (e.target.closest('#btn-opt-quick')) return;
-      if (btnOptQuick) btnOptQuick.click();
-    });
-  }
-  const cardCreate = document.getElementById('card-create-room');
-  if (cardCreate) {
-    cardCreate.addEventListener('click', (e) => {
-      if (e.target.closest('#btn-opt-create')) return;
-      if (btnOptCreate) btnOptCreate.click();
-    });
-  }
-const btnOptQuick = document.getElementById('btn-opt-quick');
+  // 3 LỰA CHỌN TRONG SẢNH ĐẤU MẠNG ONLINE (GHÉP NHANH / TẠO PHÒNG / NHẬP MÃ)
+  const btnOptQuick = document.getElementById('btn-opt-quick');
   if (btnOptQuick) {
-    btnOptQuick.addEventListener('click', () => {
-      network.quickMatch('1v1', playerName, selectedChar.avatar, selectedChar.color);
+    btnOptQuick.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (displayRoomCode) displayRoomCode.innerText = 'TÌM PHÒNG...';
+      if (roomStatusNote) roomStatusNote.innerText = 'Đang tìm đối thủ trực tuyến trên Firebase...';
       if (onlineViewLobby) onlineViewLobby.classList.add('hidden');
       if (onlineViewRoom) onlineViewRoom.classList.remove('hidden');
+      network.quickMatch('1v1', playerName, selectedChar.avatar, selectedChar.color);
     });
   }
 
   const btnOptCreate = document.getElementById('btn-opt-create');
   if (btnOptCreate) {
-    btnOptCreate.addEventListener('click', () => {
-      network.createRoom('1v1', playerName, selectedChar.avatar, selectedChar.color);
+    btnOptCreate.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (displayRoomCode) displayRoomCode.innerText = 'TẠO MÃ...';
+      if (roomStatusNote) roomStatusNote.innerText = 'Đang tạo phòng thi đấu trên Firebase...';
       if (onlineViewLobby) onlineViewLobby.classList.add('hidden');
       if (onlineViewRoom) onlineViewRoom.classList.remove('hidden');
+      network.createRoom('1v1', playerName, selectedChar.avatar, selectedChar.color);
+    });
+  }
+
+  // Click vào bất kỳ đâu trên card cũng kích hoạt hành động tương ứng
+  const cardQuick = document.getElementById('card-quick-match');
+  if (cardQuick) {
+    cardQuick.addEventListener('click', () => {
+      if (btnOptQuick) btnOptQuick.click();
+    });
+  }
+  const cardCreate = document.getElementById('card-create-room');
+  if (cardCreate) {
+    cardCreate.addEventListener('click', () => {
+      if (btnOptCreate) btnOptCreate.click();
     });
   }
 
@@ -884,9 +932,11 @@ const btnOptQuick = document.getElementById('btn-opt-quick');
     btnJoinRoom.addEventListener('click', () => {
       const code = document.getElementById('room-code-input').value.trim();
       if (code.length >= 3) {
-        network.joinRoom(code.toUpperCase(), playerName, selectedChar.avatar, selectedChar.color);
+        if (displayRoomCode) displayRoomCode.innerText = code.toUpperCase();
+        if (roomStatusNote) roomStatusNote.innerText = 'Đang vào phòng thi đấu...';
         if (onlineViewLobby) onlineViewLobby.classList.add('hidden');
         if (onlineViewRoom) onlineViewRoom.classList.remove('hidden');
+        network.joinRoom(code.toUpperCase(), playerName, selectedChar.avatar, selectedChar.color);
       } else {
         alert('Vui lòng nhập mã phòng hợp lệ (4 ký tự)');
       }
