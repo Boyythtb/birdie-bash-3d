@@ -32,6 +32,12 @@ export class GameManager {
     this.state = 'MENU';
     this.stateTimer = 0;
 
+    // Bộ hẹn giờ trận đấu (Quản lý chặt chẽ để huỷ triệt để khi thoát hoặc hết trận)
+    this.serveTimeout = null;
+    this.botServeTimeout = null;
+    this.pointTimeout = null;
+    this.gameOverTimeout = null;
+
     // Rung lắc camera (Screen Shake)
     this.shakeIntensity = 0;
     this.bufferedAction = null;
@@ -94,6 +100,7 @@ export class GameManager {
 
   bindEvents() {
     window.addEventListener('keydown', (e) => {
+      if (this.state === 'MENU') return;
       this.keys[e.code] = true;
 
       if (this.state === 'SERVE' && (e.code === 'Space' || e.code === 'KeyJ')) {
@@ -122,7 +129,7 @@ export class GameManager {
     });
 
     window.addEventListener('mousedown', (e) => {
-      if (e.target.closest('#main-menu') || e.target.closest('#game-over-modal') || e.target.closest('.action-buttons') || e.target.closest('.hud-hint-btn') || e.target.closest('.modal-overlay')) {
+      if (this.state === 'MENU' || e.target.closest('#main-menu') || e.target.closest('#game-over-modal') || e.target.closest('.action-buttons') || e.target.closest('.hud-hint-btn') || e.target.closest('.modal-overlay')) {
         return;
       }
       if (this.state === 'SERVE') {
@@ -189,14 +196,23 @@ export class GameManager {
       this.notifyUI('ĐIỂM SỐ ONLINE!', data.reason || '', 'info');
 
       if (this.playerScore >= this.targetScore || this.botScore >= this.targetScore) {
-        setTimeout(() => {
-          this.gameOver(this.playerScore >= this.targetScore ? 'player' : 'bot');
+        if (this.gameOverTimeout) clearTimeout(this.gameOverTimeout);
+        this.gameOverTimeout = setTimeout(() => {
+          if (this.state !== 'MENU') {
+            this.gameOver(this.playerScore >= this.targetScore ? 'player' : 'bot');
+          }
         }, 500);
       }
     });
   }
 
   startGame(difficulty = 'pro', mode = 'bot', yourSlot = 0) {
+    // Huỷ triệt để mọi timeout cũ để trận mới độc lập 100%
+    if (this.pointTimeout) { clearTimeout(this.pointTimeout); this.pointTimeout = null; }
+    if (this.botServeTimeout) { clearTimeout(this.botServeTimeout); this.botServeTimeout = null; }
+    if (this.gameOverTimeout) { clearTimeout(this.gameOverTimeout); this.gameOverTimeout = null; }
+    if (this.serveTimeout) { clearTimeout(this.serveTimeout); this.serveTimeout = null; }
+
     this.gameMode = mode;
     this.isMultiplayer = mode.startsWith('online');
     this.isDoubles = mode.includes('2v2');
@@ -220,6 +236,7 @@ export class GameManager {
   }
 
   setupServe() {
+    if (this.state === 'MENU') return;
     this.state = 'SERVE';
     this.stateTimer = 0;
     this.rallyCount = 0;
@@ -270,7 +287,8 @@ export class GameManager {
       this.notifyUI('ĐỐI THỦ PHÁT CẦU 🤖', `Đối thủ phát từ ${sideText} · Chuẩn bị!`, 'warning');
 
       if (!this.isMultiplayer) {
-        setTimeout(() => {
+        if (this.botServeTimeout) clearTimeout(this.botServeTimeout);
+        this.botServeTimeout = setTimeout(() => {
           if (this.state === 'SERVE' && this.currentServer === 'bot') {
             this.botServe();
           }
@@ -280,6 +298,7 @@ export class GameManager {
   }
 
   playerServe() {
+    if (this.state !== 'SERVE') return;
     this.state = 'RALLY';
     this.player.playAction('swing');
     sounds.playHit(false);
@@ -315,6 +334,7 @@ export class GameManager {
   }
 
   botServe() {
+    if (this.state !== 'SERVE') return;
     this.state = 'RALLY';
     this.bot.playAction('swing');
     sounds.playHit(false);
@@ -725,7 +745,7 @@ export class GameManager {
   }
 
   onPointScored(winner, reason) {
-    if (this.state === 'POINT' || this.state === 'GAMEOVER') return;
+    if (this.state === 'POINT' || this.state === 'GAMEOVER' || this.state === 'MENU') return;
     this.state = 'POINT';
     this.stateTimer = 0;
 
@@ -754,17 +774,24 @@ export class GameManager {
     }
 
     if (this.playerScore >= this.targetScore || this.botScore >= this.targetScore) {
-      setTimeout(() => {
-        this.gameOver(this.playerScore >= this.targetScore ? 'player' : 'bot');
+      if (this.gameOverTimeout) clearTimeout(this.gameOverTimeout);
+      this.gameOverTimeout = setTimeout(() => {
+        if (this.state !== 'MENU') {
+          this.gameOver(this.playerScore >= this.targetScore ? 'player' : 'bot');
+        }
       }, 500);
     } else {
-      setTimeout(() => {
-        this.setupServe();
+      if (this.pointTimeout) clearTimeout(this.pointTimeout);
+      this.pointTimeout = setTimeout(() => {
+        if (this.state !== 'MENU') {
+          this.setupServe();
+        }
       }, 2000);
     }
   }
 
   gameOver(winner) {
+    if (this.state === 'MENU') return;
     this.state = 'GAMEOVER';
     if (winner === 'player') {
       sounds.playCheer();
@@ -1170,10 +1197,17 @@ export class GameManager {
     const targetCamPos = isLobby ? this.lobbyCamPos : this.matchCamPos;
     const targetLookAt = isLobby ? this.lobbyCamLookAt : this.matchCamLookAt;
 
-    // Tốc độ nội suy mượt mà phụ thuộc dt (mượt mà 100% trên cả 60Hz, 120Hz ProMotion và thiết bị yếu)
-    const camLerpFactor = 1.0 - Math.exp(-5.0 * dt);
+    // Tốc độ nội suy mượt mà phụ thuộc dt (phản hồi dứt khoát, mượt mà 100% trên cả 60Hz, 120Hz ProMotion và thiết bị yếu)
+    const camLerpFactor = 1.0 - Math.exp(-6.5 * dt);
     this.currentCamPos.lerp(targetCamPos, camLerpFactor);
     this.currentCamLookAt.lerp(targetLookAt, camLerpFactor);
+
+    if (this.currentCamPos.distanceTo(targetCamPos) < 0.005) {
+      this.currentCamPos.copy(targetCamPos);
+    }
+    if (this.currentCamLookAt.distanceTo(targetLookAt) < 0.005) {
+      this.currentCamLookAt.copy(targetLookAt);
+    }
 
     if (this.shakeIntensity > 0) {
       this.camera.position.x = this.currentCamPos.x + (Math.random() - 0.5) * this.shakeIntensity;
@@ -1187,33 +1221,66 @@ export class GameManager {
   }
 
   // Khôi phục vị trí các nhân vật khi về sảnh chính hoặc hết trận
-  // Giữ nguyên góc nhìn thẳng chuẩn thi đấu (không bị nghiêng chéo) và hoạt cảnh nhún nhảy sống động
   resetLobbyPositions() {
-    this.player.group.position.set(0, 0, 4.5);
+    this.player.group.position.set(0.5, 0, 4.2);
     this.player.group.rotation.y = Math.PI;
     this.player.state = 'idle';
     this.player.velocity.set(0, 0, 0);
 
-    this.bot.group.position.set(0, 0, -4.5);
+    this.bot.group.position.set(-0.8, 0, -4.2);
     this.bot.group.rotation.y = 0;
     this.bot.state = 'idle';
     this.bot.velocity.set(0, 0, 0);
 
     if (this.teammate) {
-      this.teammate.group.position.set(1.2, 0, 3.5);
+      this.teammate.group.visible = false;
+      this.teammate.group.position.set(-1.2, 0, 3.2);
       this.teammate.group.rotation.y = Math.PI;
       this.teammate.state = 'idle';
       this.teammate.velocity.set(0, 0, 0);
     }
 
     if (this.bot2) {
-      this.bot2.group.position.set(-1.2, 0, -3.5);
+      this.bot2.group.visible = false;
+      this.bot2.group.position.set(1.0, 0, -3.2);
       this.bot2.group.rotation.y = 0;
       this.bot2.state = 'idle';
       this.bot2.velocity.set(0, 0, 0);
     }
 
     this.shuttlecock.ground();
-    this.shuttlecock.position.set(0.35, 1.05, 4.15);
+    this.shuttlecock.position.set(0.85, 1.05, 4.2);
+    this.shuttlecock.velocity.set(0, 0, 0);
+    this.shuttlecock.isAirborne = false;
+    if (this.shuttlecock.trailLine) this.shuttlecock.trailLine.visible = false;
+    if (this.shuttlecock.indicatorGroup) this.shuttlecock.indicatorGroup.visible = false;
+    if (this.aimReticle) this.aimReticle.visible = false;
+  }
+
+  // Quay về Sảnh chính hoàn chỉnh & triệt tiêu mọi xung đột trạng thái
+  returnToMenu() {
+    // 1. Huỷ triệt để toàn bộ các timeout đang chờ để không bị gọi đè lại SERVE hay RALLY
+    if (this.pointTimeout) { clearTimeout(this.pointTimeout); this.pointTimeout = null; }
+    if (this.botServeTimeout) { clearTimeout(this.botServeTimeout); this.botServeTimeout = null; }
+    if (this.gameOverTimeout) { clearTimeout(this.gameOverTimeout); this.gameOverTimeout = null; }
+    if (this.serveTimeout) { clearTimeout(this.serveTimeout); this.serveTimeout = null; }
+
+    // 2. Thiết lập trạng thái chắc chắn là MENU
+    this.state = 'MENU';
+    this.stateTimer = 0;
+    this.bufferedAction = null;
+    this.shakeIntensity = 0;
+    this.keys = {};
+    this.virtualJoystickDir = { x: 0, z: 0 };
+
+    // 3. Thoát trận Online và huỷ đánh đôi
+    if (this.isMultiplayer) {
+      try { network.leaveRoom(); } catch (e) {}
+      this.isMultiplayer = false;
+    }
+    this.isDoubles = false;
+
+    // 4. Khôi phục vị trí các nhân vật về trạng thái sảnh chờ
+    this.resetLobbyPositions();
   }
 }

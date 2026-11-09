@@ -897,6 +897,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
   // Quản lý hiển thị thanh phím tắt Desktop HUD (Tự động biến mất khi vào game)
   const desktopHud = document.getElementById('desktop-controls-hud');
   let desktopHudTimer = null;
+  let gameOverModalTimer = null;
 
   const showDesktopHud = (duration = 3000) => {
     if (!desktopHud) return;
@@ -926,6 +927,22 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
 
   // Tự động biến mất ngay lập tức khi người chơi bắt đầu bấm phím hoặc click chuột chơi game
   window.addEventListener('keydown', (e) => {
+    if (e.code === 'Escape') {
+      if (gameManager.state === 'SERVE' || gameManager.state === 'RALLY' || gameManager.state === 'POINT') {
+        const modalConfirmExit = document.getElementById('modal-confirm-exit');
+        if (modalConfirmExit) {
+          if (modalConfirmExit.classList.contains('hidden')) {
+            modalConfirmExit.classList.remove('hidden');
+          } else {
+            modalConfirmExit.classList.add('hidden');
+          }
+        }
+      } else {
+        closeAllModals();
+      }
+      return;
+    }
+
     if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyJ', 'KeyK', 'KeyL', 'ShiftLeft', 'ShiftRight', 'KeyU'].includes(e.code)) {
       hideDesktopHud();
     }
@@ -1335,8 +1352,25 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
 
   document.getElementById('btn-leave-room').addEventListener('click', () => {
     network.leaveRoom();
+    if (gameManager.state !== 'MENU') {
+      gameManager.returnToMenu();
+    }
     if (onlineViewRoom) onlineViewRoom.classList.add('hidden');
     if (onlineViewLobby) onlineViewLobby.classList.remove('hidden');
+  });
+
+  network.on('roomClosed', () => {
+    if (gameManager.state !== 'MENU') {
+      if (gameOverModalTimer) clearTimeout(gameOverModalTimer);
+      document.getElementById('game-over-modal').classList.add('hidden');
+      document.getElementById('hud').classList.add('hidden');
+      document.getElementById('main-menu').classList.remove('hidden');
+      const inGameControls = document.getElementById('in-game-controls');
+      if (inGameControls) inGameControls.classList.add('hidden');
+      hideDesktopHud();
+      gameManager.returnToMenu();
+      showGameToast('Chủ phòng đã thoát hoặc phòng đã đóng!', 'warning');
+    }
   });
 
   // ==========================================
@@ -1373,12 +1407,14 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
   if (btnConfirmExit) {
     btnConfirmExit.addEventListener('click', () => {
       if (modalConfirmExit) modalConfirmExit.classList.add('hidden');
-      gameManager.state = 'MENU';
-      gameManager.resetLobbyPositions();
+      if (gameOverModalTimer) clearTimeout(gameOverModalTimer);
+      document.getElementById('game-over-modal').classList.add('hidden');
       document.getElementById('hud').classList.add('hidden');
       document.getElementById('main-menu').classList.remove('hidden');
       const inGameControls = document.getElementById('in-game-controls');
       if (inGameControls) inGameControls.classList.add('hidden');
+      hideDesktopHud();
+      gameManager.returnToMenu();
       showGameToast('Đã quay về sảnh chính', 'info');
     });
   }
@@ -1394,13 +1430,14 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
   });
 
   document.getElementById('btn-back-to-lobby').addEventListener('click', () => {
+    if (gameOverModalTimer) clearTimeout(gameOverModalTimer);
     document.getElementById('game-over-modal').classList.add('hidden');
     document.getElementById('hud').classList.add('hidden');
     document.getElementById('main-menu').classList.remove('hidden');
     const inGameControls = document.getElementById('in-game-controls');
     if (inGameControls) inGameControls.classList.add('hidden');
-    gameManager.state = 'MENU';
-    gameManager.resetLobbyPositions();
+    hideDesktopHud();
+    gameManager.returnToMenu();
   });
 
   // ==========================================
@@ -1522,7 +1559,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
 
   // Chạm trực tiếp vào sân đấu để phát cầu hoặc đánh nhanh nếu không dùng nút
   window.addEventListener('touchstart', (e) => {
-    if (e.target.closest('#main-menu') || e.target.closest('.modal-overlay') || e.target.closest('#in-game-controls') || e.target.closest('.hud-top-bar')) {
+    if (gameManager.state === 'MENU' || e.target.closest('#main-menu') || e.target.closest('.modal-overlay') || e.target.closest('#in-game-controls') || e.target.closest('.hud-top-bar')) {
       return;
     }
     if (gameManager.state === 'SERVE' && gameManager.currentServer === 'player') {
@@ -1621,7 +1658,9 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
       }
 
       if (data.state === 'GAMEOVER') {
-        setTimeout(() => {
+        if (gameOverModalTimer) clearTimeout(gameOverModalTimer);
+        gameOverModalTimer = setTimeout(() => {
+          if (gameManager.state === 'MENU') return;
           document.getElementById('final-score').innerText = `${data.playerScore} - ${data.botScore}`;
           const isWin = data.playerScore > data.botScore;
           document.getElementById('result-trophy').innerText = isWin ? '🏆' : '💔';

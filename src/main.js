@@ -233,7 +233,7 @@ function animate() {
       // Cập nhật Bot AI 1v1
       if (!gameManager.isMultiplayer && gameManager.state === 'RALLY') {
         botAI.update(dt, player.group.position);
-      } else if (!gameManager.isMultiplayer && gameManager.state === 'SERVE') {
+      } else if (!gameManager.isMultiplayer && (gameManager.state === 'SERVE' || gameManager.state === 'MENU' || gameManager.state === 'GAMEOVER')) {
         bot.update(dt);
       }
     } else {
