@@ -7,16 +7,17 @@ import { ParticleSystem } from './particles.js';
 import { BotAI } from './ai.js';
 import { GameManager } from './game.js';
 import { setupUI } from './ui.js';
+import { sounds } from './audio.js';
 
 // Khởi tạo Three.js Scene với nền Pastel Pink ấm áp chuẩn Birdie Bash
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xfdf2f8);
 scene.fog = new THREE.FogExp2(0xfdf2f8, 0.006);
 
-// GÓC CAMERA ISOMETRIC 3/4 ĐẶC TRƯNG CHUẨN BIRDIE BASH
+// GÓC CAMERA CHUẨN THI ĐẤU CẦU LÔNG (Nhìn thẳng từ sau lưng người chơi, cân đối và chuẩn xác)
 const camera = new THREE.PerspectiveCamera(46, window.innerWidth / window.innerHeight, 0.1, 100);
-camera.position.set(-7.2, 10.5, 13.2);
-camera.lookAt(1.0, 0.4, -0.5);
+camera.position.set(0, 8.4, 13.8);
+camera.lookAt(0, 0.6, -0.8);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -112,12 +113,9 @@ scene.add(shuttlecock.trailLine);
 // 6. Hệ thống hiệu ứng hạt (Particles)
 const particles = new ParticleSystem(scene);
 
-// 7. Khởi tạo Trí tuệ nhân tạo (Bot AI)
-const botAI = new BotAI(bot, shuttlecock, 'pro');
-
 let uiHandler = null;
 
-// 8. Khởi tạo Quản lý trận đấu (Game Manager)
+// 7. Khởi tạo Quản lý trận đấu (Game Manager)
 const gameManager = new GameManager({
   scene,
   camera,
@@ -131,6 +129,18 @@ const gameManager = new GameManager({
   onUIUpdate: (data) => {
     if (uiHandler && uiHandler.updateHUD) {
       uiHandler.updateHUD(data);
+    }
+  }
+});
+
+// 8. Khởi tạo Trí tuệ nhân tạo (Bot AI 1v1) với hiệu ứng smash tóe lửa và âm thanh
+const botAI = new BotAI(bot, shuttlecock, 'pro', {
+  particles,
+  sounds,
+  onShot: (shotType, pos) => {
+    if (shotType === 'smash') {
+      gameManager.shakeIntensity = 0.52;
+      gameManager.notifyUI('💥 ĐỐI THỦ SMASH TÓE LỬA! 🔥', `Rally: ${gameManager.rallyCount} chạm`, 'smash');
     }
   }
 });
@@ -158,7 +168,7 @@ uiHandler = setupUI(
 const container = document.getElementById('canvas-container');
 container.appendChild(renderer.domElement);
 
-// Hàm cập nhật tỷ lệ camera theo màn hình (Tự động thích ứng nếu là điện thoại dọc)
+// Hàm cập nhật tỷ lệ camera theo màn hình (Luôn giữ góc nhìn thẳng chuẩn thi đấu)
 function updateCameraAspect() {
   const isPortrait = window.innerWidth < window.innerHeight;
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -168,13 +178,15 @@ function updateCameraAspect() {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
   if (isPortrait) {
-    gameManager.lobbyCamPos.set(-5.8, 12.2, 14.8);
-    gameManager.lobbyCamLookAt.set(1.0, 0.4, -0.4);
+    // Góc nhìn dọc: Thẳng từ sau lưng, bao quát toàn bộ 2 nửa sân
+    gameManager.lobbyCamPos.set(0, 9.6, 14.2);
+    gameManager.lobbyCamLookAt.set(0, 0.5, -0.6);
     gameManager.matchCamPos.set(0, 9.6, 14.2);
     gameManager.matchCamLookAt.set(0, 0.5, -0.6);
   } else {
-    gameManager.lobbyCamPos.set(-7.2, 10.5, 13.2);
-    gameManager.lobbyCamLookAt.set(1.0, 0.4, -0.5);
+    // Góc nhìn ngang: Thẳng từ sau lưng, cân đối và sắc nét
+    gameManager.lobbyCamPos.set(0, 8.0, 13.4);
+    gameManager.lobbyCamLookAt.set(0, 0.6, -0.8);
     gameManager.matchCamPos.set(0, 8.0, 13.4);
     gameManager.matchCamLookAt.set(0, 0.6, -0.8);
   }
@@ -199,18 +211,29 @@ function animate() {
     // Cập nhật quả cầu lông & vệt sáng
     shuttlecock.update(dt);
 
-    // Cập nhật hạt hiệu ứng
+    // Cập nhật hạt hiệu ứng (tia lửa, khói bụi, sóng xung kích)
     particles.update(dt);
 
     // Cập nhật animation các nhân vật
-    if (teammate.group.visible) teammate.update(dt);
-    if (bot2.group.visible) bot2.update(dt);
+    if (!gameManager.isDoubles) {
+      if (teammate.group.visible) teammate.update(dt);
+      if (bot2.group.visible) bot2.update(dt);
 
-    // Cập nhật Bot AI 1v1
-    if (!gameManager.isMultiplayer && !gameManager.isDoubles && gameManager.state === 'RALLY') {
-      botAI.update(dt, player.group.position);
-    } else if (!gameManager.isMultiplayer && gameManager.state === 'SERVE') {
-      bot.update(dt);
+      // Cập nhật Bot AI 1v1
+      if (!gameManager.isMultiplayer && gameManager.state === 'RALLY') {
+        botAI.update(dt, player.group.position);
+      } else if (!gameManager.isMultiplayer && gameManager.state === 'SERVE') {
+        bot.update(dt);
+      }
+    } else {
+      // Trong chế độ đánh đôi 2v2:
+      // Khi giao cầu hoặc ngoài sảnh menu: cập nhật idle animation cho các nhân vật
+      if (gameManager.state === 'SERVE' || gameManager.state === 'MENU') {
+        if (teammate.group.visible) teammate.update(dt);
+        if (bot.group.visible) bot.update(dt);
+        if (bot2.group.visible) bot2.update(dt);
+      }
+      // Khi đang RALLY trong 2v2: gameManager.updateDoubles(dt) tự điều phối chạy, đánh và bọc lót
     }
 
     // Cập nhật game manager

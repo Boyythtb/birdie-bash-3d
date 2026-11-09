@@ -1258,6 +1258,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     btnConfirmExit.addEventListener('click', () => {
       if (modalConfirmExit) modalConfirmExit.classList.add('hidden');
       gameManager.state = 'MENU';
+      gameManager.resetLobbyPositions();
       document.getElementById('hud').classList.add('hidden');
       document.getElementById('main-menu').classList.remove('hidden');
       const inGameControls = document.getElementById('in-game-controls');
@@ -1275,6 +1276,10 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     document.getElementById('game-over-modal').classList.add('hidden');
     document.getElementById('hud').classList.add('hidden');
     document.getElementById('main-menu').classList.remove('hidden');
+    const inGameControls = document.getElementById('in-game-controls');
+    if (inGameControls) inGameControls.classList.add('hidden');
+    gameManager.state = 'MENU';
+    gameManager.resetLobbyPositions();
   });
 
   // ==========================================

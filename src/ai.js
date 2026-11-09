@@ -1,10 +1,13 @@
 import * as THREE from 'three';
 
 export class BotAI {
-  constructor(botCharacter, shuttlecock, difficulty = 'pro') {
+  constructor(botCharacter, shuttlecock, difficulty = 'pro', options = {}) {
     this.bot = botCharacter;
     this.shuttlecock = shuttlecock;
     this.difficulty = difficulty;
+    this.particles = options.particles || null;
+    this.sounds = options.sounds || null;
+    this.onShot = options.onShot || null;
 
     this.homeBase = new THREE.Vector3(0, 0, -4.2);
     this.targetPos = this.homeBase.clone();
@@ -158,6 +161,28 @@ export class BotAI {
     }
 
     const vel = new THREE.Vector3(vx, vy, vz);
+
+    // Âm thanh và hiệu ứng hạt tương ứng
+    if (this.sounds) {
+      if (shotType === 'smash') this.sounds.playHit(true);
+      else if (shotType === 'drop') this.sounds.playDrop();
+      else this.sounds.playHit(false);
+    }
+
+    if (this.particles) {
+      if (shotType === 'smash') {
+        if (this.particles.emitFireSmash) this.particles.emitFireSmash(startPos, 48);
+        else this.particles.emitHit(startPos, 28, true);
+      } else if (shotType === 'drop') {
+        this.particles.emitHit(startPos, 12, false);
+      } else {
+        this.particles.emitHit(startPos, 16, false);
+      }
+    }
+
+    if (this.onShot) {
+      this.onShot(shotType, startPos);
+    }
 
     s.hit({
       from: startPos,

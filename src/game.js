@@ -36,19 +36,19 @@ export class GameManager {
     this.shakeIntensity = 0;
     this.bufferedAction = null;
 
-    // 1. Góc nhìn Lobby (Isometric 3/4 góc chéo ấm áp chuẩn Birdie Bash khi ở Màn hình chờ)
-    this.lobbyCamPos = new THREE.Vector3(-7.2, 10.5, 13.2);
-    this.lobbyCamLookAt = new THREE.Vector3(1.0, 0.4, -0.5);
+    // 1. Góc nhìn Lobby & Sân thi đấu (Camera sau lưng người chơi nhìn thẳng sân đấu, cân đối và chuẩn xác)
+    this.lobbyCamPos = new THREE.Vector3(0, 8.4, 13.8);
+    this.lobbyCamLookAt = new THREE.Vector3(0, 0.6, -0.8);
 
     // 2. Góc nhìn Trong Trận Đấu (Camera sau lưng người chơi nhìn thẳng sân đấu như Màn 2)
     this.matchCamPos = new THREE.Vector3(0, 8.0, 13.4);
     this.matchCamLookAt = new THREE.Vector3(0, 0.6, -0.8);
 
     // Vị trí camera động được nội suy mượt mà (Smooth Lerp)
-    this.currentCamPos = this.lobbyCamPos.clone();
-    this.currentCamLookAt = this.lobbyCamLookAt.clone();
-    this.defaultCamPos = this.lobbyCamPos;
-    this.defaultCamLookAt = this.lobbyCamLookAt;
+    this.currentCamPos = this.matchCamPos.clone();
+    this.currentCamLookAt = this.matchCamLookAt.clone();
+    this.defaultCamPos = this.matchCamPos;
+    this.defaultCamLookAt = this.matchCamLookAt;
 
     // Lưu trữ phím điều khiển & Cảm ứng vuốt di chuyển
     this.keys = {};
@@ -158,7 +158,12 @@ export class GameManager {
       if (data.slot !== this.multiplayerSlot) {
         this.bot.playAction(data.shotType === 'smash' ? 'smash' : 'swing');
         sounds.playHit(data.shotType === 'smash');
-        this.particles.emitHit(this.shuttlecock.position, data.shotType === 'smash' ? 28 : 16, data.shotType === 'smash');
+        if (data.shotType === 'smash' && this.particles.emitFireSmash) {
+          this.particles.emitFireSmash(this.shuttlecock.position, 48);
+          this.shakeIntensity = 0.52;
+        } else {
+          this.particles.emitHit(this.shuttlecock.position, 16, false);
+        }
 
         const fromPos = new THREE.Vector3(data.from.x, data.from.y, data.from.z);
         const vel = new THREE.Vector3(data.velocity.x, data.velocity.y, data.velocity.z);
@@ -447,12 +452,16 @@ export class GameManager {
       return true;
     }
 
-    // 2. SMASH (Đập Cầu Cắm Sàn)
+    // 2. SMASH (Đập Cầu Cắm Sàn Tóe Lửa)
     if (actionType === 'smash') {
       this.player.playAction('smash');
       sounds.playHit(true);
-      this.shakeIntensity = 0.55;
-      this.particles.emitHit(s.position, 36, true);
+      this.shakeIntensity = 0.65;
+      if (this.particles.emitFireSmash) {
+        this.particles.emitFireSmash(s.position, 56);
+      } else {
+        this.particles.emitHit(s.position, 36, true);
+      }
 
       const targetPos = new THREE.Vector3(
         THREE.MathUtils.clamp(this.aimTarget.x, -2.0, 2.0),
@@ -469,7 +478,7 @@ export class GameManager {
         shotType: 'smash'
       });
 
-      this.notifyUI('💥 SIÊU SMASH ĐẬP CẮM SÀN! 🔥', `Rally: ${this.rallyCount} chạm`, 'smash');
+      this.notifyUI('💥 SIÊU SMASH TÓE LỬA! 🔥', `Rally: ${this.rallyCount} chạm`, 'smash');
       return true;
     }
 
@@ -549,9 +558,16 @@ export class GameManager {
     if (!s.isAirborne) return;
 
     if (s.position.y <= 0.06) {
+      const wasSmash = (s.shotType === 'smash');
+      const impactPos = s.position.clone();
       s.ground();
       sounds.playFloorTap();
       sounds.playWhistle();
+
+      if (wasSmash && this.particles.emitFireImpact) {
+        this.particles.emitFireImpact(impactPos);
+        this.shakeIntensity = 0.38;
+      }
 
       const landX = s.position.x;
       const landZ = s.position.z;
@@ -663,7 +679,8 @@ export class GameManager {
   }
 
 
-  // CHIẾN THUẬT ĐÁNH ĐÔI 2v2 (CÔNG - THỦ PHỐI HỢP LINH HOẠT)
+  // CHIẾN THUẬT ĐÁNH ĐÔI 2v2 THÔNG MINH ĐẲNG CẤP (BWF DOUBLES TACTICS)
+  // Phân vùng chuẩn xác (Left/Right & Front/Back), không tranh chấp cầu, di chuyển mượt mà có animation
   updateDoubles(dt) {
     if (!this.isDoubles || this.state !== 'RALLY') return;
 
@@ -673,87 +690,230 @@ export class GameManager {
     const b1 = this.bot;
     const b2 = this.bot2;
 
-    // 1. Đồng đội AI tự động bọc lót theo vị trí của người chơi
-    if (tm) {
-      let targetZ = 3.2;
-      let targetX = -p.x * 0.65;
+    if (!tm || !b1 || !b2) return;
 
-      if (p.z < 4.0) {
-        // Người chơi đang ở trước lưới -> Đồng đội lùi về sau bao quát đáy sân
-        targetZ = 5.2;
-        targetX = -p.x * 0.8;
+    const landX = THREE.MathUtils.clamp(s.predictedLanding.x, -2.6, 2.6);
+    const landZ = THREE.MathUtils.clamp(s.predictedLanding.z, -6.0, 6.0);
+
+    // ========================================================
+    // 1. ĐỒNG ĐỘI AI (TEAMMATE) - PHỐI HỢP ĂN Ý VỚI NGƯỜI CHƠI
+    // ========================================================
+    const isBallHeadingToPlayer = s.isAirborne && s.velocity.z > 0 && s.lastHitter !== 'player';
+
+    // Vị trí giữ cự ly bọc lót cơ bản theo người chơi
+    let tmTargetX = (p.x < 0) ? 1.35 : -1.35;
+    let tmTargetZ = (p.z < 3.8) ? 4.8 : 2.5;
+
+    const distPlayerToLanding = Math.hypot(p.x - landX, p.z - landZ);
+    const distTmToLanding = Math.hypot(tm.group.position.x - landX, tm.group.position.z - landZ);
+    const distPlayerToBall = Math.hypot(p.x - s.position.x, p.z - s.position.z);
+
+    // QUY TẮC BỌC LÓT THÔNG MINH (Smart Arbitration):
+    // Người chơi luôn được ưu tiên cao nhất để tận hưởng trải nghiệm đánh cầu.
+    // Đồng đội chỉ can thiệp khi:
+    // a. Cầu rơi xa người chơi (> 2.8m) và đồng đội ở gần hơn
+    // b. Hoặc cầu rơi sâu góc đối diện người chơi (> 3.2m)
+    // c. Hoặc pha bóng nguy hiểm sắp chạm đất (< 0.65m) mà người chơi cách xa > 1.9m
+    const tmAssigned = isBallHeadingToPlayer && (
+      (distPlayerToLanding > 2.8 && distTmToLanding < distPlayerToLanding) ||
+      (distPlayerToLanding > 3.2) ||
+      (s.position.y < 0.65 && distPlayerToBall > 1.9 && distTmToLanding < 2.0)
+    );
+
+    if (tmAssigned) {
+      // Đồng đội chủ động tiến tới điểm đón cầu
+      tmTargetX = landX;
+      tmTargetZ = Math.max(1.6, landZ - 0.25);
+    } else {
+      // Người chơi phụ trách cầu -> Đồng đội lùi/tiến bọc lót khoảng trống sân nhà
+      if (p.x < -0.2) {
+        tmTargetX = 1.35; // Người chơi bên trái -> Đồng đội bao quát bên phải
+      } else if (p.x > 0.2) {
+        tmTargetX = -1.35; // Người chơi bên phải -> Đồng đội bao quát bên trái
       } else {
-        // Người chơi đang lùi sâu -> Đồng đội tiến lên bám lưới bắt cầu con
-        targetZ = 2.8;
-        targetX = -p.x * 0.6;
+        tmTargetX = (landX < 0) ? 1.35 : -1.35;
       }
 
-      // Nếu cầu đang bay sang sân nhà (z > 0)
-      if (s.isAirborne && s.velocity.z > 0) {
-        const distToPlayer = p.distanceTo(s.position);
-        const distToTeammate = tm.group.position.distanceTo(s.position);
-
-        // Nếu quả cầu gần đồng đội hơn hoặc người chơi ở quá xa
-        if (distToTeammate < distToPlayer || distToPlayer > 3.2) {
-          targetX = THREE.MathUtils.clamp(s.position.x, -2.5, 2.5);
-          targetZ = THREE.MathUtils.clamp(s.position.z, 1.8, 5.8);
-        }
-      }
-
-      const tmPos = tm.group.position;
-      tmPos.x = THREE.MathUtils.lerp(tmPos.x, targetX, dt * 4.8);
-      tmPos.z = THREE.MathUtils.lerp(tmPos.z, targetZ, dt * 4.8);
-
-      // Đồng đội tự động đỡ cầu khi vào tầm vợt
-      const distXZ = new THREE.Vector2(tmPos.x - s.position.x, tmPos.z - s.position.z).length();
-      if (s.isAirborne && s.position.z > 0.4 && distXZ < 1.6 && s.position.y > 0.25 && s.position.y < 3.2) {
-        tm.playAction(s.position.y > 1.8 ? 'smash' : 'swing');
-        sounds.playHit(false);
-        this.particles.emitHit(s.position, 14, false);
-        this.rallyCount++;
-
-        const targetOppX = (Math.random() - 0.5) * 4.4;
-        const targetOppZ = -4.8 + (Math.random() - 0.5) * 1.5;
-        const vel = this.calculateTrajectory(s.position, new THREE.Vector3(targetOppX, 0, targetOppZ), 'clear', 0.95);
-        s.hit({ from: s.position.clone(), velocity: vel, hitter: 'player', shotType: 'clear' });
-        this.notifyUI('ĐỒNG ĐỘI TIẾP CẦU! 🏸', 'Pha phối hợp ăn ý!', 'success');
+      if (p.z < 3.6) {
+        tmTargetZ = 5.0; // Người chơi lên lưới -> Đồng đội lùi sâu bao quát đáy sân
+      } else {
+        tmTargetZ = 2.4; // Người chơi lùi đáy -> Đồng đội tiến bám lưới đón quả rụng
       }
     }
 
-    // 2. Bot 1 và Bot 2 phối hợp phòng thủ & tấn công
-    if (b1 && b2) {
-      // Bot 2 bọc lót theo Bot 1
-      const b1Pos = b1.group.position;
-      const b2Pos = b2.group.position;
+    // Di chuyển đồng đội có inputDir để kích hoạt animation chạy/bước chân mượt mà
+    const tmPos = tm.group.position;
+    const tmDir = new THREE.Vector3(tmTargetX - tmPos.x, 0, tmTargetZ - tmPos.z);
+    const tmDist = tmDir.length();
+    let tmInputDir = null;
+    if (tmDist > 0.15) {
+      tmDir.normalize();
+      tmInputDir = tmDir;
+    }
+    tm.update(dt, tmInputDir);
 
-      let b2TargetZ = (b1Pos.z > -4.0) ? -5.2 : -2.8;
-      let b2TargetX = -b1Pos.x * 0.7;
+    // Đồng đội thực hiện cú đánh khi cầu vào tầm vợt (Và người chơi không đứng ngay sát đó)
+    const distTmToBallXZ = Math.hypot(tmPos.x - s.position.x, tmPos.z - s.position.z);
+    const canTmHit = isBallHeadingToPlayer &&
+                     distTmToBallXZ < 1.65 &&
+                     s.position.z > 0.35 &&
+                     s.position.y > 0.2 &&
+                     s.position.y < 3.8 &&
+                     distPlayerToBall > 1.85; // Không cướp cầu khi người chơi đang ngay sát đó
 
-      if (s.isAirborne && s.velocity.z < 0) {
-        const dist1 = b1Pos.distanceTo(s.position);
-        const dist2 = b2Pos.distanceTo(s.position);
-        if (dist2 < dist1) {
-          b2TargetX = THREE.MathUtils.clamp(s.position.x, -2.6, 2.6);
-          b2TargetZ = THREE.MathUtils.clamp(s.position.z, -5.8, -1.8);
+    if (canTmHit) {
+      this.rallyCount++;
+      const height = s.position.y;
+      const startPos = s.position.clone();
+
+      if (height > 1.85) {
+        // SMASH TÓE LỬA DŨNG MÃNH
+        tm.playAction('smash');
+        sounds.playHit(true);
+        this.shakeIntensity = 0.55;
+        if (this.particles.emitFireSmash) {
+          this.particles.emitFireSmash(startPos, 50);
+        }
+
+        const openX = (b1.group.position.x + b2.group.position.x > 0) ? -1.7 : 1.7;
+        const targetPos = new THREE.Vector3(openX + (Math.random() - 0.5) * 0.4, 0, -3.2);
+        const vel = this.calculateTrajectory(startPos, targetPos, 'smash', 1.35);
+
+        s.hit({ from: startPos, velocity: vel, hitter: 'player', shotType: 'smash' });
+        this.notifyUI('💥 ĐỒNG ĐỘI SMASH TÓE LỬA! 🔥', `Rally: ${this.rallyCount} chạm`, 'smash');
+      } else if (tmPos.z < 3.0 && height < 1.6) {
+        // BỎ NHỎ TINH TẾ SÁT LƯỚI
+        tm.playAction('swing');
+        sounds.playDrop();
+        this.particles.emitHit(startPos, 14, false);
+
+        const openX = (Math.random() - 0.5) * 3.0;
+        const targetPos = new THREE.Vector3(openX, 0, -1.35);
+        const vel = this.calculateTrajectory(startPos, targetPos, 'drop', 0.85);
+
+        s.hit({ from: startPos, velocity: vel, hitter: 'player', shotType: 'drop' });
+        this.notifyUI('🏸 ĐỒNG ĐỘI BỎ NHỎ TINH TẾ! 🎯', `Rally: ${this.rallyCount} chạm`, 'hit');
+      } else {
+        // PHÔNG CẦU CAO SÂU CUỐI SÂN
+        tm.playAction('swing');
+        sounds.playHit(false);
+        this.particles.emitHit(startPos, 16, false);
+
+        const targetPos = new THREE.Vector3((Math.random() - 0.5) * 3.4, 0, -5.0);
+        const vel = this.calculateTrajectory(startPos, targetPos, 'clear', 0.98);
+
+        s.hit({ from: startPos, velocity: vel, hitter: 'player', shotType: 'clear' });
+        this.notifyUI('🏸 ĐỒNG ĐỘI BỌC LÓT PHÔNG CẦU! 🛡️', `Rally: ${this.rallyCount} chạm`, 'hit');
+      }
+    }
+
+    // ========================================================
+    // 2. BỘ ĐÔI MÁY (BOT 1 & BOT 2) - PHỐI HỢP ĐÁNH ĐÔI THÔNG MINH
+    // ========================================================
+    const isBallHeadingToBots = s.isAirborne && s.velocity.z < 0 && s.lastHitter !== 'bot';
+    const b1Pos = b1.group.position;
+    const b2Pos = b2.group.position;
+
+    if (isBallHeadingToBots) {
+      // Phân chia nhiệm vụ theo khoảng cách tới điểm rơi dự đoán
+      const d1 = Math.hypot(b1Pos.x - landX, b1Pos.z - landZ);
+      const d2 = Math.hypot(b2Pos.x - landX, b2Pos.z - landZ);
+
+      const hitter = (d1 <= d2) ? b1 : b2;
+      const cover = (d1 <= d2) ? b2 : b1;
+
+      // Hitter di chuyển đón cầu
+      const hitterTargetX = landX;
+      const hitterTargetZ = Math.min(-0.9, landZ - 0.25);
+
+      const hDir = new THREE.Vector3(hitterTargetX - hitter.group.position.x, 0, hitterTargetZ - hitter.group.position.z);
+      let hInputDir = null;
+      if (hDir.length() > 0.15) {
+        hDir.normalize();
+        hInputDir = hDir;
+      }
+      hitter.update(dt, hInputDir);
+
+      // Cover bot di chuyển trám vị trí hở
+      let coverTargetX = (hitterTargetX < -0.3) ? 1.35 : (hitterTargetX > 0.3 ? -1.35 : -hitterTargetX * 0.7);
+      let coverTargetZ = (hitterTargetZ < -4.0) ? -2.4 : -4.8; // Hitter ở đáy -> Cover bám lưới, ngược lại lùi sâu
+
+      const cDir = new THREE.Vector3(coverTargetX - cover.group.position.x, 0, coverTargetZ - cover.group.position.z);
+      let cInputDir = null;
+      if (cDir.length() > 0.15) {
+        cDir.normalize();
+        cInputDir = cDir;
+      }
+      cover.update(dt, cInputDir);
+
+      // Kiểm tra đánh trả cho Hitter
+      const distHitterBallXZ = Math.hypot(hitter.group.position.x - s.position.x, hitter.group.position.z - s.position.z);
+      const canHitterHit = distHitterBallXZ < 1.65 &&
+                           s.position.z < -0.35 &&
+                           s.position.y > 0.2 &&
+                           s.position.y < 3.8;
+
+      if (canHitterHit) {
+        this.rallyCount++;
+        const height = s.position.y;
+        const startPos = s.position.clone();
+        const rand = Math.random();
+
+        if (height > 1.85 && rand < 0.65) {
+          // BOT SMASH TÓE LỬA
+          hitter.playAction('smash');
+          sounds.playHit(true);
+          this.shakeIntensity = 0.52;
+          if (this.particles.emitFireSmash) {
+            this.particles.emitFireSmash(startPos, 48);
+          }
+
+          const openX = (p.x > 0) ? -1.65 : 1.65;
+          const targetPos = new THREE.Vector3(openX + (Math.random() - 0.5) * 0.4, 0, 3.2);
+          const vel = this.calculateTrajectory(startPos, targetPos, 'smash', 1.35);
+
+          s.hit({ from: startPos, velocity: vel, hitter: 'bot', shotType: 'smash' });
+          this.notifyUI('💥 ĐỐI THỦ SMASH TÓE LỬA! 🔥', `Rally: ${this.rallyCount} chạm`, 'smash');
+        } else if (hitter.group.position.z > -2.8 && height < 1.6 && rand < 0.38) {
+          // BOT BỎ NHỎ SÁT LƯỚI
+          hitter.playAction('swing');
+          sounds.playDrop();
+          this.particles.emitHit(startPos, 14, false);
+
+          const openX = (Math.random() - 0.5) * 3.2;
+          const targetPos = new THREE.Vector3(openX, 0, 1.35);
+          const vel = this.calculateTrajectory(startPos, targetPos, 'drop', 0.82);
+
+          s.hit({ from: startPos, velocity: vel, hitter: 'bot', shotType: 'drop' });
+          this.notifyUI('🏸 ĐỐI THỦ BỎ NHỎ! 🎯', `Rally: ${this.rallyCount} chạm`, 'hit');
+        } else {
+          // BOT PHÔNG CẦU CAO SÂU
+          hitter.playAction('swing');
+          sounds.playHit(false);
+          this.particles.emitHit(startPos, 16, false);
+
+          const openX = (p.x > 0) ? -1.75 : 1.75;
+          const targetPos = new THREE.Vector3(openX, 0, 4.9);
+          const vel = this.calculateTrajectory(startPos, targetPos, 'clear', 0.98);
+
+          s.hit({ from: startPos, velocity: vel, hitter: 'bot', shotType: 'clear' });
         }
       }
+    } else {
+      // Cầu đang bay sang sân Player -> Cả Bot 1 và Bot 2 trở về vị trí phòng thủ đôi song song
+      const b1TargetX = -1.25;
+      const b1TargetZ = -4.0;
+      const b1Dir = new THREE.Vector3(b1TargetX - b1Pos.x, 0, b1TargetZ - b1Pos.z);
+      let b1Input = null;
+      if (b1Dir.length() > 0.15) { b1Dir.normalize(); b1Input = b1Dir; }
+      b1.update(dt, b1Input);
 
-      b2Pos.x = THREE.MathUtils.lerp(b2Pos.x, b2TargetX, dt * 4.5);
-      b2Pos.z = THREE.MathUtils.lerp(b2Pos.z, b2TargetZ, dt * 4.5);
-
-      // Bot 2 đánh trả nếu đến gần
-      const distB2 = new THREE.Vector2(b2Pos.x - s.position.x, b2Pos.z - s.position.z).length();
-      if (s.isAirborne && s.position.z < -0.4 && distB2 < 1.6 && s.position.y > 0.25 && s.position.y < 3.2) {
-        b2.playAction(s.position.y > 1.8 ? 'smash' : 'swing');
-        sounds.playHit(false);
-        this.particles.emitHit(s.position, 14, false);
-        this.rallyCount++;
-
-        const targetPlayerX = (Math.random() - 0.5) * 4.4;
-        const targetPlayerZ = 4.8 + (Math.random() - 0.5) * 1.5;
-        const vel = this.calculateTrajectory(s.position, new THREE.Vector3(targetPlayerX, 0, targetPlayerZ), 'clear', 0.95);
-        s.hit({ from: s.position.clone(), velocity: vel, hitter: 'bot', shotType: 'clear' });
-      }
+      const b2TargetX = 1.25;
+      const b2TargetZ = -4.0;
+      const b2Dir = new THREE.Vector3(b2TargetX - b2Pos.x, 0, b2TargetZ - b2Pos.z);
+      let b2Input = null;
+      if (b2Dir.length() > 0.15) { b2Dir.normalize(); b2Input = b2Dir; }
+      b2.update(dt, b2Input);
     }
   }
 
@@ -786,8 +946,13 @@ export class GameManager {
 
     if (this.state === 'RALLY') {
       this.checkNetCollision();
-    this.updateDoubles(dt);
+      this.updateDoubles(dt);
       this.checkGroundHit();
+
+      // Hiệu ứng tàn lửa đuôi cầu khi đang bay cú smash tóe lửa
+      if (this.shuttlecock.isAirborne && this.shuttlecock.shotType === 'smash' && this.particles.emitSmashTrail) {
+        this.particles.emitSmashTrail(this.shuttlecock.position);
+      }
     }
 
     // Di chuyển người chơi theo phím hoặc Joystick
@@ -841,5 +1006,36 @@ export class GameManager {
       this.camera.position.copy(this.currentCamPos);
     }
     this.camera.lookAt(this.currentCamLookAt);
+  }
+
+  // Khôi phục vị trí các nhân vật khi về sảnh chính hoặc hết trận
+  // Giữ nguyên góc nhìn thẳng chuẩn thi đấu (không bị nghiêng chéo) và hoạt cảnh nhún nhảy sống động
+  resetLobbyPositions() {
+    this.player.group.position.set(0, 0, 4.5);
+    this.player.group.rotation.y = Math.PI;
+    this.player.state = 'idle';
+    this.player.velocity.set(0, 0, 0);
+
+    this.bot.group.position.set(0, 0, -4.5);
+    this.bot.group.rotation.y = 0;
+    this.bot.state = 'idle';
+    this.bot.velocity.set(0, 0, 0);
+
+    if (this.teammate) {
+      this.teammate.group.position.set(1.2, 0, 3.5);
+      this.teammate.group.rotation.y = Math.PI;
+      this.teammate.state = 'idle';
+      this.teammate.velocity.set(0, 0, 0);
+    }
+
+    if (this.bot2) {
+      this.bot2.group.position.set(-1.2, 0, -3.5);
+      this.bot2.group.rotation.y = 0;
+      this.bot2.state = 'idle';
+      this.bot2.velocity.set(0, 0, 0);
+    }
+
+    this.shuttlecock.ground();
+    this.shuttlecock.position.set(0.35, 1.05, 4.15);
   }
 }
