@@ -232,11 +232,11 @@ export class GameManager {
       this.notifyUI('CHẾ ĐỘ ĐÁNH ĐÔI 2 VS 2! 👥', 'Phối hợp cùng đồng đội bao quát toàn bộ sân!', 'info');
     }
 
+    this.state = 'SERVE';
     this.setupServe();
   }
 
   setupServe() {
-    if (this.state === 'MENU') return;
     this.state = 'SERVE';
     this.stateTimer = 0;
     this.rallyCount = 0;
