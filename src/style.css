@@ -14,6 +14,14 @@
   user-select: none;
   -webkit-user-select: none;
   touch-action: manipulation;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 /* ===================================================
@@ -319,7 +327,7 @@ html, body {
   align-self: center;
   width: 100%;
   max-width: 580px;
-  background: rgba(255, 255, 255, 0.93);
+  background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(24px);
   border: 1.5px solid rgba(255, 255, 255, 0.9);
   border-radius: 26px;
@@ -497,7 +505,7 @@ html, body {
   transform: translateX(-50%);
   width: 100%;
   max-width: 620px;
-  background: rgba(255, 255, 255, 0.97);
+  background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(28px);
   border-radius: 28px 28px 0 0;
   border: 1.5px solid rgba(255, 255, 255, 0.9);
@@ -680,13 +688,16 @@ html, body {
 
 .btn-card-action {
   border: none;
-  padding: 6px 8px;
+  padding: 7px 8px;
   border-radius: 10px;
   font-size: 11px;
   font-weight: 850;
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-card-action.primary {
@@ -707,6 +718,8 @@ html, body {
 .btn-card-action.secondary:hover {
   background: #cbd5e1;
 }
+
+.mt-2 { margin-top: 8px; }
 
 .room-action-row {
   display: flex;
@@ -737,7 +750,7 @@ html, body {
   cursor: pointer;
 }
 
-/* 2. ROSTER GRID */
+/* 2. ROSTER GRID (6 ĐẤU THỦ) */
 .roster-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -759,6 +772,7 @@ html, body {
 .roster-card:hover {
   background: #ffffff;
   border-color: #cbd5e1;
+  transform: translateY(-1px);
 }
 
 .roster-card.active {
@@ -770,7 +784,6 @@ html, body {
 .roster-avatar-box {
   width: 44px;
   height: 44px;
-  background: #fef08a;
   border-radius: 14px;
   display: flex;
   align-items: center;
@@ -779,8 +792,11 @@ html, body {
   flex-shrink: 0;
 }
 
+.roster-avatar-box.gold { background: #fef08a; }
+.roster-avatar-box.dark { background: #334155; }
+.roster-avatar-box.ice { background: #e0f2fe; }
 .roster-avatar-box.pink { background: #fce7f3; }
-.roster-avatar-box.blue { background: #e0f2fe; }
+.roster-avatar-box.orange { background: #ffedd5; }
 .roster-avatar-box.green { background: #d1fae5; }
 
 .roster-info {
@@ -986,15 +1002,15 @@ html, body {
 }
 
 /* ===================================================
-   5. MODAL PHÒNG CHỜ ONLINE (MULTIPLAYER ROOM LOBBY)
+   5. MODAL PHÒNG CHỜ ONLINE CAO CẤP (VIP ROOM LOBBY)
    =================================================== */
 .online-room-box {
   width: 90%;
-  max-width: 480px;
+  max-width: 490px;
   background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(28px);
   border-radius: 28px;
-  padding: 20px 22px;
+  padding: 22px 24px;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -1003,42 +1019,46 @@ html, body {
   animation: popup-bounce 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.room-header-bar {
+.room-vip-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 10px;
+  padding-bottom: 12px;
   border-bottom: 1.5px solid #f1f5f9;
 }
 
-.room-code-badge {
+.room-badge-gold {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: #eff6ff;
-  border: 1.5px solid #bfdbfe;
-  padding: 4px 10px;
-  border-radius: 12px;
+  gap: 10px;
+  background: linear-gradient(135deg, #fef08a 0%, #fde047 100%);
+  border: 1.5px solid #eab308;
+  padding: 6px 14px;
+  border-radius: 16px;
+  box-shadow: 0 4px 14px rgba(234, 179, 8, 0.25);
 }
 
-.room-code-lbl {
-  font-size: 10px;
-  font-weight: 850;
-  color: #0369a1;
+.room-crown {
+  font-size: 24px;
 }
 
-.room-code-val {
-  font-size: 17px;
+.room-code-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.room-code-sub {
+  font-size: 9px;
+  font-weight: 900;
+  color: #854d0e;
+  letter-spacing: 0.5px;
+}
+
+.room-code-huge {
+  font-size: 22px;
   font-weight: 950;
   letter-spacing: 2px;
-  color: #0284c7;
-}
-
-.btn-code-copy {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 13px;
+  color: #713f12;
 }
 
 .btn-room-leave {
@@ -1047,7 +1067,7 @@ html, body {
   color: #ef4444;
   font-size: 11px;
   font-weight: 850;
-  padding: 6px 12px;
+  padding: 8px 14px;
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.15s;
@@ -1056,6 +1076,60 @@ html, body {
 .btn-room-leave:hover {
   background: #fca5a5;
   color: #7f1d1d;
+}
+
+/* NÚT 1 CHẠM SAO CHÉP LINK MỜI BẠN BÈ */
+.btn-copy-link-vip {
+  width: 100%;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 1.5px solid #93c5fd;
+  border-radius: 18px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.15);
+  transition: all 0.15s;
+  text-align: left;
+}
+
+.btn-copy-link-vip:hover {
+  background: #dbeafe;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(59, 130, 246, 0.25);
+}
+
+.copy-link-icon {
+  font-size: 24px;
+}
+
+.copy-link-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.copy-link-main {
+  font-size: 13px;
+  font-weight: 900;
+  color: #1d4ed8;
+}
+
+.copy-link-sub {
+  font-size: 10px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.copy-link-tag {
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 850;
+  padding: 4px 8px;
+  border-radius: 8px;
+  white-space: nowrap;
 }
 
 .room-match-info {
@@ -1171,9 +1245,17 @@ html, body {
   justify-content: center;
 }
 
+.pulse-start {
+  animation: pulse-btn 1.4s infinite;
+}
+
+@keyframes pulse-btn {
+  0%, 100% { transform: scale(1); box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4); }
+  50% { transform: scale(1.02); box-shadow: 0 12px 30px rgba(16, 185, 129, 0.6); }
+}
+
 /* ===================================================
    6. BẢNG TỶ SỐ TRONG TRẬN (COMPACT ESPORTS HUD)
-   THIẾT KẾ ĐẲNG CẤP, NỔI BẬT & CÂN ĐỐI
    =================================================== */
 .hud-top-bar {
   position: absolute;
@@ -1190,12 +1272,13 @@ html, body {
 .match-hud-pill {
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(20px);
-  border: 2px solid rgba(255, 255, 255, 0.95);
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.94) 0%, rgba(30, 41, 59, 0.96) 100%);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1.5px solid rgba(255, 255, 255, 0.22);
   border-radius: 40px;
   padding: 6px 18px;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.14), 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5), 0 0 24px rgba(56, 189, 248, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 .hud-player, .hud-bot {
@@ -1204,35 +1287,96 @@ html, body {
   gap: 8px;
 }
 
+.hud-avatar-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .hud-emoji {
-  font-size: 24px;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  font-size: 26px;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
+}
+
+.hud-serve-badge {
+  position: absolute;
+  bottom: -4px;
+  right: -6px;
+  font-size: 13px;
+  background: #facc15;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 10px #facc15;
+  animation: pulse-serve 1.2s infinite ease-in-out;
+}
+
+@keyframes pulse-serve {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.22); }
+}
+
+.hud-name-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.hud-name-col.align-right {
+  align-items: flex-end;
+}
+
+.hud-team-tag {
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.6px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  width: fit-content;
+}
+.hud-team-tag.blue {
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+}
+.hud-team-tag.red {
+  background: rgba(244, 63, 94, 0.2);
+  color: #fb7185;
+  border: 1px solid rgba(244, 63, 94, 0.4);
 }
 
 .hud-label {
   font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.8px;
-  color: #475569;
+  color: #f1f5f9;
 }
 
 .hud-score {
-  font-size: 30px;
+  font-size: 32px;
   font-weight: 950;
   line-height: 1;
   font-feature-settings: "tnum";
-  min-width: 22px;
+  min-width: 24px;
   text-align: center;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.score-pop {
+  transform: scale(1.35);
 }
 
 .hud-score-p1 {
-  color: #0284c7;
-  text-shadow: 0 2px 8px rgba(2, 132, 199, 0.25);
+  color: #38bdf8;
+  text-shadow: 0 0 16px rgba(56, 189, 248, 0.7);
 }
 
 .hud-score-bot {
-  color: #ef4444;
-  text-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
+  color: #fb7185;
+  text-shadow: 0 0 16px rgba(251, 113, 133, 0.7);
 }
 
 .hud-center {
@@ -1242,8 +1386,8 @@ html, body {
   gap: 2px;
   margin: 0 14px;
   padding: 0 12px;
-  border-left: 1.5px solid #e2e8f0;
-  border-right: 1.5px solid #e2e8f0;
+  border-left: 1.5px solid rgba(255, 255, 255, 0.15);
+  border-right: 1.5px solid rgba(255, 255, 255, 0.15);
 }
 
 .hud-vs-row {
@@ -1261,24 +1405,26 @@ html, body {
 .hud-diff {
   font-size: 9px;
   font-weight: 900;
-  color: #7c3aed;
-  background: #f3e8ff;
+  color: #ffffff;
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
   padding: 1px 6px;
   border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4);
 }
 
 .hud-rally {
   display: flex;
   align-items: center;
   gap: 4px;
-  background: #fffbeb;
-  border: 1px solid #fde68a;
+  background: rgba(245, 158, 11, 0.18);
+  border: 1px solid rgba(245, 158, 11, 0.45);
   padding: 2px 8px;
   border-radius: 12px;
   font-size: 11px;
   font-weight: 900;
-  color: #b45309;
+  color: #fbbf24;
   white-space: nowrap;
+  text-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
 }
 
 .hud-rally-icon {
@@ -1287,23 +1433,42 @@ html, body {
 
 .hud-hint-btn {
   pointer-events: auto;
-  background: rgba(255, 255, 255, 0.95);
-  border: 1.5px solid #cbd5e1;
+  background: rgba(15, 23, 42, 0.88);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
   border-radius: 20px;
   padding: 7px 12px;
   font-size: 11px;
   font-weight: 850;
-  color: #334155;
+  color: #f1f5f9;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
   transition: all 0.15s;
   white-space: nowrap;
+  backdrop-filter: blur(12px);
+}
+.hud-hint-btn:hover {
+  background: rgba(30, 41, 59, 0.95);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+.hud-hint-btn.btn-exit {
+  background: rgba(225, 29, 72, 0.88);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+.hud-hint-btn.btn-exit:hover {
+  background: rgba(244, 63, 94, 0.95);
 }
 
 .hud-hint-btn:hover {
   background: #ffffff;
   transform: translateY(-1px);
   border-color: #94a3b8;
+}
+
+.hud-hint-btn.btn-exit:hover {
+  color: #ef4444;
+  border-color: #fca5a5;
+  background: #fef2f2;
 }
 
 /* ===================================================
@@ -1398,7 +1563,7 @@ html, body {
 }
 
 /* ===================================================
-   9. MOBILE CONTROLS (CHỈ HIỆN KHI CÓ CẢM ỨNG)
+   9. MOBILE CONTROLS PRO (THIẾT KẾ THỂ THAO CAO CẤP)
    =================================================== */
 .mobile-controls {
   display: none !important;
@@ -1419,12 +1584,16 @@ body.has-touch .hud-hint-btn {
   display: none !important;
 }
 
+body.has-touch .hud-hint-btn.btn-exit {
+  display: block !important;
+}
+
 .joystick-zone {
   position: absolute;
   bottom: 24px;
-  left: 24px;
-  width: 130px;
-  height: 130px;
+  left: 20px;
+  width: 125px;
+  height: 125px;
   pointer-events: auto;
   display: flex;
   align-items: center;
@@ -1432,9 +1601,9 @@ body.has-touch .hud-hint-btn {
 }
 
 .joystick-base {
-  width: 110px;
-  height: 110px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, rgba(241, 245, 249, 0.5) 100%);
+  width: 105px;
+  height: 105px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.85) 0%, rgba(241, 245, 249, 0.5) 100%);
   border: 2px solid rgba(255, 255, 255, 0.95);
   border-radius: 50%;
   position: relative;
@@ -1446,8 +1615,8 @@ body.has-touch .hud-hint-btn {
 }
 
 .joystick-ring {
-  width: 65px;
-  height: 65px;
+  width: 60px;
+  height: 60px;
   border: 1.5px dashed rgba(148, 163, 184, 0.6);
   border-radius: 50%;
   position: absolute;
@@ -1455,8 +1624,8 @@ body.has-touch .hud-hint-btn {
 }
 
 .joystick-thumb {
-  width: 50px;
-  height: 50px;
+  width: 48px;
+  height: 48px;
   background: radial-gradient(circle at 35% 35%, #fde047 0%, #f59e0b 60%, #d97706 100%);
   border: 2.5px solid #ffffff;
   border-radius: 50%;
@@ -1464,70 +1633,95 @@ body.has-touch .hud-hint-btn {
   transition: transform 0.05s ease-out;
 }
 
-.action-buttons {
+/* CỤM NÚT BẤM THAO TÁC PRO */
+.action-buttons-pro {
   position: absolute;
-  bottom: 24px;
-  right: 24px;
+  bottom: 20px;
+  right: 18px;
   display: grid;
-  grid-template-columns: repeat(2, 68px);
-  grid-template-rows: repeat(2, 68px);
-  gap: 12px;
+  grid-template-columns: 66px 78px;
+  grid-template-rows: 66px 78px;
+  gap: 10px;
   pointer-events: auto;
 }
 
-.btn-action {
-  width: 68px;
-  height: 68px;
+.btn-action-pro {
   border-radius: 20px;
-  border: 2px solid rgba(255, 255, 255, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.92);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 2px;
   cursor: pointer;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-  transition: transform 0.1s;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+  transition: transform 0.08s;
+  color: #ffffff;
 }
 
-.btn-action:active {
-  transform: scale(0.9);
+.btn-action-pro:active {
+  transform: scale(0.92);
 }
 
-.btn-action .btn-icon {
-  font-size: 24px;
+.btn-act-icon {
+  font-size: 20px;
+  line-height: 1;
 }
 
-.btn-hit {
-  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
-  border-color: #bae6fd;
+.btn-act-lbl {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+/* Nút Đánh Cầu Chính To & Nổi Bật */
+.btn-hit-main {
   grid-column: 2;
   grid-row: 2;
-}
-
-.btn-smart-main {
+  width: 78px;
+  height: 78px;
   background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
   border: 2.5px solid #facc15;
-  box-shadow: 0 8px 24px rgba(2, 132, 199, 0.45), 0 0 14px rgba(250, 204, 21, 0.35);
+  box-shadow: 0 8px 24px rgba(2, 132, 199, 0.5), 0 0 16px rgba(250, 204, 21, 0.4);
+}
+
+.btn-act-icon-lg {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.btn-act-lbl-lg {
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.5px;
 }
 
 .btn-smash {
-  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
-  border-color: #fed7aa;
   grid-column: 2;
   grid-row: 1;
+  width: 78px;
+  height: 66px;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  border-color: #fed7aa;
 }
 
 .btn-drop {
-  background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%);
-  border-color: #e9d5ff;
   grid-column: 1;
   grid-row: 2;
+  width: 66px;
+  height: 78px;
+  background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%);
+  border-color: #e9d5ff;
 }
 
 .btn-dive {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  border-color: #a7f3d0;
   grid-column: 1;
   grid-row: 1;
+  width: 66px;
+  height: 66px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-color: #a7f3d0;
 }
 
 /* ===================================================
@@ -1628,35 +1822,74 @@ body.has-touch .hud-hint-btn {
 }
 
 /* ===================================================
-   RESPONSIVE DESIGN (MOBILE & TABLET)
+   RESPONSIVE DESIGN (MOBILE & TABLET - ZERO SCROLLING)
    =================================================== */
 @media (max-width: 640px) {
   .lobby-hub {
-    padding: 12px 14px 14px;
+    padding: 10px 12px 14px;
+    overflow: hidden !important;
   }
   .hub-hero-brand {
-    top: 60px;
-    left: 14px;
+    top: 54px;
+    left: 12px;
   }
   .hero-title-txt {
-    font-size: 30px;
+    font-size: 26px;
   }
   .hub-bottom-dock {
     max-width: 100%;
-    padding: 10px 12px;
-    gap: 8px;
+    padding: 8px 10px;
+    gap: 6px;
   }
-  .mode-grid, .roster-grid {
-    grid-template-columns: 1fr;
-    gap: 8px;
-    max-height: 60vh;
-    overflow-y: auto;
+  .mode-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: calc(100vh - 170px);
+    overflow: hidden !important;
+  }
+  .mode-option-card {
+    padding: 10px 12px;
+    gap: 4px;
+  }
+  .mode-option-desc {
+    display: none; /* Ẩn mô tả dài trên mobile để tiết kiệm không gian, chống tràn dòng */
+  }
+  .roster-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    max-height: calc(100vh - 170px);
+    overflow: hidden !important;
+  }
+  .roster-card {
+    padding: 8px 6px;
+    gap: 4px;
+  }
+  .roster-avatar-box {
+    font-size: 28px;
+    width: 44px;
+    height: 44px;
+  }
+  .roster-name {
+    font-size: 11px;
+  }
+  .roster-type {
+    font-size: 9px;
+  }
+  .roster-stat-bar {
+    display: none; /* Ẩn thanh chỉ số trên màn hình mobile nhỏ để vừa vặn 100% không cuộn */
+  }
+  .btn-select-roster {
+    padding: 5px 4px;
+    font-size: 10px;
   }
   .hub-drawer {
-    padding: 14px 16px 20px;
+    padding: 12px 14px 18px;
+    max-height: 80vh;
+    overflow: hidden !important;
   }
   .match-hud-pill {
-    padding: 5px 12px;
+    padding: 4px 10px;
   }
   .hud-score {
     font-size: 24px;
@@ -1665,6 +1898,14 @@ body.has-touch .hud-hint-btn {
     font-size: 20px;
   }
   .online-room-box {
-    padding: 16px;
+    padding: 12px;
+    gap: 10px;
+    overflow: hidden !important;
+  }
+  .room-slots-grid {
+    gap: 6px;
+  }
+  .room-slot {
+    padding: 8px 10px;
   }
 }

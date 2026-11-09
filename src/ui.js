@@ -30,12 +30,18 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
       </div>
     </div>
 
-    <!-- 2. HUD TRONG TRẬN ĐẤU (COMPACT ESPORTS BAR) -->
+    <!-- 2. HUD TRONG TRẬN ĐẤU (CHAMPIONSHIP ESPORTS HUD) -->
     <div id="hud" class="hud-top-bar hidden">
       <div class="match-hud-pill">
         <div class="hud-player">
-          <span id="hud-avatar" class="hud-emoji">🐶</span>
-          <span id="hud-player-name" class="hud-label">${playerName.toUpperCase()}</span>
+          <div class="hud-avatar-box">
+            <span id="hud-avatar" class="hud-emoji">🐶</span>
+            <span id="hud-serve-p1" class="hud-serve-badge" title="Đang giao cầu">🏸</span>
+          </div>
+          <div class="hud-name-col">
+            <span id="hud-player-name" class="hud-label">${playerName.toUpperCase()}</span>
+            <span class="hud-team-tag blue">ĐỘI 1</span>
+          </div>
           <span id="player-score" class="hud-score hud-score-p1">0</span>
         </div>
 
@@ -52,15 +58,21 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
 
         <div class="hud-bot">
           <span id="bot-score" class="hud-score hud-score-bot">0</span>
-          <span id="hud-bot-name" class="hud-label">BOT AI</span>
-          <span id="hud-bot-avatar" class="hud-emoji">🤖</span>
+          <div class="hud-name-col align-right">
+            <span id="hud-bot-name" class="hud-label">BOT AI</span>
+            <span class="hud-team-tag red">ĐỘI 2</span>
+          </div>
+          <div class="hud-avatar-box">
+            <span id="hud-bot-avatar" class="hud-emoji">🤖</span>
+            <span id="hud-serve-bot" class="hud-serve-badge hidden" title="Đang giao cầu">🏸</span>
+          </div>
         </div>
       </div>
 
       <button id="btn-toggle-hints" class="hud-hint-btn" title="Phím tắt">
         ⌨️ Phím
       </button>
-      <button id="btn-pause-game" class="hud-hint-btn" title="Thoát trận">
+      <button id="btn-pause-game" class="hud-hint-btn btn-exit" title="Thoát trận">
         ✕ Rời trận
       </button>
     </div>
@@ -80,7 +92,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
       <div class="hints-sub">WASD: Di chuyển đón cầu & bẻ hướng hồng tâm ngắm</div>
     </div>
 
-    <!-- ĐIỀU KHIỂN CẢM ỨNG MOBILE -->
+    <!-- ĐIỀU KHIỂN CẢM ỨNG MOBILE CAO CẤP (SPORT CONTROLS) -->
     <div id="mobile-controls" class="mobile-controls">
       <div id="joystick-zone" class="joystick-zone">
         <div id="joystick-base" class="joystick-base">
@@ -89,28 +101,32 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
         </div>
       </div>
 
-      <div class="action-buttons">
-        <button id="btn-dive" class="btn-action btn-dive" aria-label="Dive">
-          <span class="btn-icon">💨</span>
+      <div class="action-buttons-pro">
+        <button id="btn-dive" class="btn-action-pro btn-dive" aria-label="Dive">
+          <span class="btn-act-icon">💨</span>
+          <span class="btn-act-lbl">CỨU CẦU</span>
         </button>
-        <button id="btn-drop" class="btn-action btn-drop" aria-label="Drop">
-          <span class="btn-icon">🪶</span>
+        <button id="btn-drop" class="btn-action-pro btn-drop" aria-label="Drop">
+          <span class="btn-act-icon">🪶</span>
+          <span class="btn-act-lbl">BỎ NHỎ</span>
         </button>
-        <button id="btn-smash" class="btn-action btn-smash" aria-label="Smash">
-          <span class="btn-icon">💥</span>
+        <button id="btn-smash" class="btn-action-pro btn-smash" aria-label="Smash">
+          <span class="btn-act-icon">💥</span>
+          <span class="btn-act-lbl">SMASH</span>
         </button>
-        <button id="btn-hit" class="btn-action btn-hit btn-smart-main" aria-label="Hit">
-          <span class="btn-icon">🏸</span>
+        <button id="btn-hit" class="btn-action-pro btn-hit-main" aria-label="Hit">
+          <span class="btn-act-icon-lg">🏸</span>
+          <span class="btn-act-lbl-lg">ĐÁNH CẦU</span>
         </button>
       </div>
     </div>
 
     <!-- ===================================================
          3. HỆ THỐNG SẢNH GAME CAO CẤP (SCALABLE GAME HUB)
-         ZERO SCROLLING - SẴN SÀNG ONLINE & CHẾ ĐỘ MỚI
+         ZERO SCROLLING - 100% CỐ ĐỊNH TOÀN MÀN HÌNH
          =================================================== -->
     <div id="main-menu" class="lobby-hub hidden">
-      <!-- TOP BAR: PROFILE ĐỔI TÊN & SERVER STATUS -->
+      <!-- TOP BAR: PROFILE & TRẠNG THÁI SERVER -->
       <header class="hub-top-bar">
         <div class="player-profile-badge" id="btn-open-rename" title="Bấm để đổi tên">
           <div class="profile-avatar-wrap">
@@ -147,7 +163,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
             <span class="mode-card-sub">CHẾ ĐỘ HIỆN TẠI</span>
             <span id="current-mode-name" class="mode-card-title">ĐẤU VỚI BOT (1v1)</span>
           </div>
-          <button class="mode-card-change">ĐỔI ▾</button>
+          <button class="mode-card-change">ĐỔI CHẾ ĐỘ ▾</button>
         </div>
 
         <!-- NÚT BẮT ĐẦU TRANH TÀI (BIG PLAY BUTTON) -->
@@ -166,7 +182,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
             <span class="nav-icon">🏸</span>
             <span class="nav-label">Trận Đấu</span>
           </button>
-          <button class="hub-nav-btn" id="btn-nav-roster" title="Phòng thay đồ & Nhân vật">
+          <button class="hub-nav-btn" id="btn-nav-roster" title="Phòng thay đồ & Đấu thủ">
             <span class="nav-icon">👕</span>
             <span class="nav-label">Đấu Thủ</span>
           </button>
@@ -182,7 +198,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
       </footer>
 
       <!-- ===================================================
-           SUB-DRAWER 1: BẢNG CHỌN CHẾ ĐỘ THI ĐẤU (MODES)
+           SUB-DRAWER 1: BẢNG CHỌN CHẾ ĐỘ THI ĐẤU HIỆN ĐẠI (MODES)
            =================================================== -->
       <div id="drawer-modes" class="hub-drawer hidden">
         <div class="drawer-header">
@@ -201,12 +217,13 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
               <span class="mode-badge-ready">SẴN SÀNG</span>
             </div>
             <h4 class="mode-option-name">Đấu Với Máy (Bot AI)</h4>
-            <p class="mode-option-desc">Luyện kỹ thuật đón cầu, 3 cấp độ Rookie, Pro và Ace.</p>
+            <p class="mode-option-desc">Luyện kỹ thuật đón cầu, 3 cấp độ từ cơ bản đến đỉnh cao.</p>
             <div class="bot-diff-picker">
-              <button class="diff-btn-chip" data-diff="rookie">🌱 Rookie</button>
-              <button class="diff-btn-chip active" data-diff="pro">⚡ Pro</button>
-              <button class="diff-btn-chip" data-diff="ace">🔥 Ace</button>
+              <button class="diff-btn-chip" data-diff="rookie">🌱 Tập Sự</button>
+              <button class="diff-btn-chip active" data-diff="pro">⚡ Bán Chuyên</button>
+              <button class="diff-btn-chip" data-diff="ace">🔥 Huyền Thoại</button>
             </div>
+            <button id="btn-quick-play-bot" class="btn-card-action primary mt-2">CHIẾN NGAY ➜</button>
           </div>
 
           <!-- 2. ĐẤU MẠNG ONLINE 1v1 -->
@@ -216,10 +233,10 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
               <span class="mode-badge-multi">ONLINE 1v1</span>
             </div>
             <h4 class="mode-option-name">Đấu Mạng 1v1 (Realtime)</h4>
-            <p class="mode-option-desc">Tạo phòng riêng có mã hoặc ghép trận ngẫu nhiên.</p>
+            <p class="mode-option-desc">Tạo phòng riêng nhận link mời bạn bè hoặc ghép trận tức thì.</p>
             <div class="online-card-actions">
               <button id="btn-quick-match-1v1" class="btn-card-action primary">⚡ Ghép Nhanh 1v1</button>
-              <button id="btn-create-room-1v1" class="btn-card-action secondary">➕ Tạo Phòng</button>
+              <button id="btn-create-room-1v1" class="btn-card-action secondary">➕ Tạo Phòng 1v1</button>
             </div>
             <div class="room-action-row">
               <input type="text" id="room-code-input" class="room-input" placeholder="Nhập mã 4 chữ..." maxlength="4" />
@@ -234,7 +251,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
               <span class="mode-badge-multi">ONLINE 2v2</span>
             </div>
             <h4 class="mode-option-name">Đánh Đôi 2v2 (Doubles)</h4>
-            <p class="mode-option-desc">Phối hợp 2 người mỗi bên sân thi đấu trực tuyến.</p>
+            <p class="mode-option-desc">Phối hợp 2 người mỗi bên sân thi đấu trực tuyến cực đã.</p>
             <div class="online-card-actions">
               <button id="btn-quick-match-2v2" class="btn-card-action primary">⚡ Ghép Đôi 2v2</button>
               <button id="btn-create-room-2v2" class="btn-card-action secondary">➕ Tạo Phòng 2v2</button>
@@ -254,69 +271,97 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
       </div>
 
       <!-- ===================================================
-           SUB-DRAWER 2: PHÒNG THAY ĐỒ & ĐẤU THỦ (ROSTER)
+           SUB-DRAWER 2: PHÒNG THAY ĐỒ & 6 ĐẤU THỦ ĐA DẠNG (ROSTER)
            =================================================== -->
       <div id="drawer-roster" class="hub-drawer hidden">
         <div class="drawer-header">
           <div class="drawer-title-group">
-            <h3 class="drawer-title">PHÒNG ĐẤU THỦ & TRANG PHỤC</h3>
+            <h3 class="drawer-title">PHÒNG ĐẤU THỦ & TRANG PHỤC (6 ĐẤU THỦ)</h3>
             <p class="drawer-sub">Chọn nhân vật đại diện ra sân của bạn</p>
           </div>
           <button class="drawer-close-btn" id="btn-close-roster">✕</button>
         </div>
 
         <div class="roster-grid">
-          <!-- Corgi Vàng -->
-          <div class="roster-card active" data-color="0xf59e0b" data-sec="0xffedd5" data-avatar="🐶" data-name="Corgi Vàng">
-            <div class="roster-avatar-box">🐶</div>
+          <!-- 1. Shiba Dũng Cảm -->
+          <div class="roster-card active" data-color="0xf59e0b" data-sec="0xffedd5" data-jersey="0x0284c7" data-avatar="🐶" data-name="Shiba Dũng Cảm">
+            <div class="roster-avatar-box gold">🐶</div>
             <div class="roster-info">
-              <h4 class="roster-name">Corgi Vàng</h4>
-              <span class="roster-type">Phong cách: Toàn diện</span>
+              <h4 class="roster-name">Shiba Dũng Cảm</h4>
+              <span class="roster-type">Số 7 · Toàn diện</span>
               <div class="roster-stat-bar">
                 <span>Tốc độ:</span>
-                <div class="stat-track"><div class="stat-fill" style="width: 85%"></div></div>
+                <div class="stat-track"><div class="stat-fill" style="width: 88%"></div></div>
               </div>
             </div>
             <button class="btn-select-roster">ĐANG CHỌN</button>
           </div>
 
-          <!-- Mèo Hồng -->
-          <div class="roster-card" data-color="0xec4899" data-sec="0xfce7f3" data-avatar="🐱" data-name="Mèo Hồng">
-            <div class="roster-avatar-box pink">🐱</div>
+          <!-- 2. Kuro Neko (Mèo Đen Ninja) -->
+          <div class="roster-card" data-color="0x1e293b" data-sec="0xffffff" data-jersey="0x7c3aed" data-avatar="🐱" data-name="Kuro Neko">
+            <div class="roster-avatar-box dark">🐱</div>
             <div class="roster-info">
-              <h4 class="roster-name">Mèo Hồng</h4>
-              <span class="roster-type">Phong cách: Kỹ thuật</span>
+              <h4 class="roster-name">Kuro Neko (Ninja)</h4>
+              <span class="roster-type">Số 11 · Kỹ thuật & Bỏ nhỏ</span>
               <div class="roster-stat-bar">
                 <span>Bỏ nhỏ:</span>
-                <div class="stat-track"><div class="stat-fill" style="width: 95%"></div></div>
+                <div class="stat-track"><div class="stat-fill" style="width: 96%"></div></div>
               </div>
             </div>
             <button class="btn-select-roster">CHỌN</button>
           </div>
 
-          <!-- Gấu Lam -->
-          <div class="roster-card" data-color="0x0284c7" data-sec="0xe0f2fe" data-avatar="🐻" data-name="Gấu Lam">
-            <div class="roster-avatar-box blue">🐻</div>
+          <!-- 3. Gấu Bắc Cực (Polar Bear) -->
+          <div class="roster-card" data-color="0xf8fafc" data-sec="0xe2e8f0" data-jersey="0xef4444" data-avatar="🐻" data-name="Gấu Bắc Cực">
+            <div class="roster-avatar-box ice">🐻</div>
             <div class="roster-info">
-              <h4 class="roster-name">Gấu Lam</h4>
-              <span class="roster-type">Phong cách: Sức mạnh</span>
+              <h4 class="roster-name">Gấu Bắc Cực</h4>
+              <span class="roster-type">Số 99 · Smash sấm sét</span>
               <div class="roster-stat-bar">
                 <span>Smash:</span>
+                <div class="stat-track"><div class="stat-fill" style="width: 98%"></div></div>
+              </div>
+            </div>
+            <button class="btn-select-roster">CHỌN</button>
+          </div>
+
+          <!-- 4. Thỏ Trắng Tốc Độ (Speedy Bunny) -->
+          <div class="roster-card" data-color="0xffffff" data-sec="0xfce7f3" data-jersey="0xec4899" data-avatar="🐰" data-name="Thỏ Trắng Tốc Độ">
+            <div class="roster-avatar-box pink">🐰</div>
+            <div class="roster-info">
+              <h4 class="roster-name">Thỏ Trắng (Bunny)</h4>
+              <span class="roster-type">Số 3 · Cứu cầu Dive</span>
+              <div class="roster-stat-bar">
+                <span>Cứu cầu:</span>
                 <div class="stat-track"><div class="stat-fill" style="width: 95%"></div></div>
               </div>
             </div>
             <button class="btn-select-roster">CHỌN</button>
           </div>
 
-          <!-- Vịt Xanh -->
-          <div class="roster-card" data-color="0x10b981" data-sec="0xd1fae5" data-avatar="🦆" data-name="Vịt Xanh">
-            <div class="roster-avatar-box green">🦆</div>
+          <!-- 5. Cáo Lửa Kyubi (Fire Fox) -->
+          <div class="roster-card" data-color="0xea580c" data-sec="0xffedd5" data-jersey="0xf59e0b" data-avatar="🦊" data-name="Cáo Lửa Kyubi">
+            <div class="roster-avatar-box orange">🦊</div>
             <div class="roster-info">
-              <h4 class="roster-name">Vịt Xanh</h4>
-              <span class="roster-type">Phong cách: Bền bỉ</span>
+              <h4 class="roster-name">Cáo Lửa Kyubi</h4>
+              <span class="roster-type">Số 9 · Xoáy lốc</span>
               <div class="roster-stat-bar">
-                <span>Cứu cầu:</span>
-                <div class="stat-track"><div class="stat-fill" style="width: 90%"></div></div>
+                <span>Khéo léo:</span>
+                <div class="stat-track"><div class="stat-fill" style="width: 92%"></div></div>
+              </div>
+            </div>
+            <button class="btn-select-roster">CHỌN</button>
+          </div>
+
+          <!-- 6. Panda Bậc Thầy (Master Panda) -->
+          <div class="roster-card" data-color="0x334155" data-sec="0xffffff" data-jersey="0x10b981" data-avatar="🐼" data-name="Panda Bậc Thầy">
+            <div class="roster-avatar-box green">🐼</div>
+            <div class="roster-info">
+              <h4 class="roster-name">Panda Bậc Thầy</h4>
+              <span class="roster-type">Số 88 · Phòng thủ thép</span>
+              <div class="roster-stat-bar">
+                <span>Bền bỉ:</span>
+                <div class="stat-track"><div class="stat-fill" style="width: 95%"></div></div>
               </div>
             </div>
             <button class="btn-select-roster">CHỌN</button>
@@ -372,18 +417,30 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     </div>
 
     <!-- ===================================================
-         5. MODAL PHÒNG CHỜ ONLINE (MULTIPLAYER ROOM LOBBY)
+         5. MODAL PHÒNG CHỜ ONLINE CAO CẤP (VIP ROOM LOBBY)
          =================================================== -->
     <div id="modal-online-room" class="modal-overlay hidden">
       <div class="online-room-box">
-        <div class="room-header-bar">
-          <div class="room-code-badge">
-            <span class="room-code-lbl">MÃ PHÒNG:</span>
-            <span id="display-room-code" class="room-code-val">----</span>
-            <button id="btn-copy-code" class="btn-code-copy" title="Copy mã">📋</button>
+        <div class="room-vip-header">
+          <div class="room-badge-gold">
+            <span class="room-crown">👑</span>
+            <div class="room-code-group">
+              <span class="room-code-sub">MÃ PHÒNG THI ĐẤU</span>
+              <span id="display-room-code" class="room-code-huge">----</span>
+            </div>
           </div>
           <button id="btn-leave-room" class="btn-room-leave">✕ Rời phòng</button>
         </div>
+
+        <!-- NÚT 1 CHẠM SAO CHÉP LINK MỜI BẠN BÈ SIÊU TIỆN LỢI -->
+        <button id="btn-copy-invite-link" class="btn-copy-link-vip">
+          <span class="copy-link-icon">🔗</span>
+          <div class="copy-link-text">
+            <span class="copy-link-main">SAO CHÉP LINK MỜI BẠN BÈ</span>
+            <span class="copy-link-sub">Bạn bè chỉ cần bấm link là vào thẳng phòng!</span>
+          </div>
+          <span class="copy-link-tag">1-CHẠM 📋</span>
+        </button>
 
         <div class="room-match-info">
           <span id="room-mode-tag" class="room-mode-tag">ONLINE 1v1 REALTIME</span>
@@ -396,8 +453,8 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
           <div class="room-slot active">
             <span class="slot-avatar">🐶</span>
             <div class="slot-text">
-              <span class="slot-name">${playerName}</span>
-              <span class="slot-role host">Chủ phòng · Đội 1</span>
+              <span class="slot-name">${playerName} (Bạn)</span>
+              <span class="slot-role host">🏠 Sân Nhà · Đội 1</span>
             </div>
             <span class="slot-badge ready">SẴN SÀNG</span>
           </div>
@@ -406,8 +463,8 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
           <div class="room-slot empty" id="slot-opponent">
             <span class="slot-avatar">⏳</span>
             <div class="slot-text">
-              <span class="slot-name">Đang tìm đối thủ...</span>
-              <span class="slot-role">Đội 2</span>
+              <span class="slot-name">Đang chờ đối thủ...</span>
+              <span class="slot-role">✈️ Sân Khách · Đội 2</span>
             </div>
             <span class="slot-badge wait">CHỜ</span>
           </div>
@@ -417,7 +474,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
           <button id="btn-room-ready" class="btn-hub-play btn-room-ready">
             <span id="txt-room-ready">SẴN SÀNG CHIẾN ĐẤU 🔥</span>
           </button>
-          <button id="btn-host-start" class="btn-hub-play btn-host-start hidden">
+          <button id="btn-host-start" class="btn-hub-play btn-host-start pulse-start hidden">
             <span>BẮT ĐẦU TRẬN NGAY ➜</span>
           </button>
         </div>
@@ -456,7 +513,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
   const loadInterval = setInterval(() => {
     loadP += 25;
     if (loadingBar) loadingBar.style.width = `${loadP}%`;
-    if (loadP === 50 && loadingStatus) loadingStatus.innerText = 'Khởi tạo vật lý cầu lông 3D...';
+    if (loadP === 50 && loadingStatus) loadingStatus.innerText = 'Tải sân thi đấu & Khán đài 3D...';
     if (loadP === 75 && loadingStatus) loadingStatus.innerText = 'Kết nối hệ thống Multiplayer...';
     if (loadP >= 100) {
       clearInterval(loadInterval);
@@ -466,11 +523,28 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
           setTimeout(() => {
             loadingScreen.style.display = 'none';
             document.getElementById('main-menu').classList.remove('hidden');
+
+            // Kiểm tra xem người dùng có mở link mời bạn bè qua URL ?room=XXXX không
+            checkUrlInviteCode();
           }, 350);
         }
       }, 200);
     }
-  }, 200);
+  }, 180);
+
+  // ==========================================
+  // XỬ LÝ URL INVITE LINK (?room=XXXX)
+  // ==========================================
+  function checkUrlInviteCode() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const inviteCode = urlParams.get('room');
+    if (inviteCode && inviteCode.trim().length >= 3) {
+      const cleanCode = inviteCode.toUpperCase().trim();
+      setTimeout(() => {
+        network.joinRoom(cleanCode, playerName, selectedChar.avatar, selectedChar.color);
+      }, 500);
+    }
+  }
 
   // ==========================================
   // QUẢN LÝ TÊN NGƯỜI CHƠI (RENAME MODAL)
@@ -506,9 +580,15 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
   // ==========================================
   // QUẢN LÝ TRẠNG THÁI SẢNH & SUB-DRAWERS
   // ==========================================
-  let selectedMode = 'bot'; // 'bot' | 'online-1v1' | 'online-2v2'
+  let selectedMode = 'bot';
   let selectedDiff = 'pro';
-  let selectedChar = { color: 0xf59e0b, sec: 0xffedd5, avatar: '🐶', name: 'Corgi Vàng' };
+  let selectedChar = {
+    color: 0xf59e0b,
+    secondaryColor: 0xffedd5,
+    jerseyColor: 0x0284c7,
+    avatar: '🐶',
+    name: 'Shiba Dũng Cảm'
+  };
 
   const drawerModes = document.getElementById('drawer-modes');
   const drawerRoster = document.getElementById('drawer-roster');
@@ -565,7 +645,13 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     });
   });
 
-  // Xử lý chọn nhân vật (Đổi trực tiếp trên sân 3D)
+  // Nút Chiến Ngay với Bot từ bảng chọn chế độ
+  document.getElementById('btn-quick-play-bot').addEventListener('click', () => {
+    closeAllDrawers();
+    document.getElementById('btn-start').click();
+  });
+
+  // Xử lý chọn 6 nhân vật đa dạng (Đổi trực tiếp diện mạo trên sân 3D)
   const rosterCards = document.querySelectorAll('.roster-card');
   rosterCards.forEach((card) => {
     card.addEventListener('click', () => {
@@ -578,7 +664,8 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
 
       selectedChar = {
         color: parseInt(card.dataset.color),
-        sec: parseInt(card.dataset.sec),
+        secondaryColor: parseInt(card.dataset.sec),
+        jerseyColor: parseInt(card.dataset.jersey),
         avatar: card.dataset.avatar,
         name: card.dataset.name
       };
@@ -589,7 +676,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
   });
 
   // ==========================================
-  // XỬ LÝ GIAI ĐOẠN 3: MULTIPLAYER WEBSOCKET
+  // XỬ LÝ GIAI ĐOẠN 3: MULTIPLAYER FIREBASE REALTIME
   // ==========================================
   const modalOnlineRoom = document.getElementById('modal-online-room');
   const displayRoomCode = document.getElementById('display-room-code');
@@ -600,10 +687,9 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
   const serverStatusTxt = document.getElementById('server-status-txt');
   const serverStatusPill = document.getElementById('server-status-pill');
 
-  // Lắng nghe trạng thái kết nối
   network.on('connected', (isConnected) => {
     if (isConnected) {
-      serverStatusTxt.innerText = 'Server Online (24ms)';
+      serverStatusTxt.innerText = 'Firebase Realtime Online';
       serverStatusPill.classList.remove('offline');
     } else {
       serverStatusTxt.innerText = 'Đang kết nối lại...';
@@ -611,13 +697,12 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     }
   });
 
-  // Cập nhật giao diện phòng khi có dữ liệu từ Server
+  // Cập nhật giao diện phòng khi có dữ liệu từ Firebase
   network.on('roomUpdated', ({ room, yourSlot, isHost }) => {
     modalOnlineRoom.classList.remove('hidden');
     displayRoomCode.innerText = room.code;
     document.getElementById('room-mode-tag').innerText = room.mode === '2v2' ? 'ONLINE 2v2 ĐÁNH ĐÔI' : 'ONLINE 1v1 REALTIME';
 
-    // Render danh sách người chơi
     let html = '';
     room.players.forEach((p, idx) => {
       const isYou = p.id === network.clientId;
@@ -627,21 +712,20 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
           <span class="slot-avatar">${p.avatar}</span>
           <div class="slot-text">
             <span class="slot-name">${p.name} ${isYou ? '(Bạn)' : ''}</span>
-            <span class="slot-role ${isHostP ? 'host' : ''}">${isHostP ? 'Chủ phòng · ' : ''}Đội ${p.team}</span>
+            <span class="slot-role ${isHostP ? 'host' : ''}">${isHostP ? '🏠 Chủ phòng · ' : '✈️ '}Đội ${p.team}</span>
           </div>
           <span class="slot-badge ${p.ready ? 'ready' : 'wait'}">${p.ready ? 'SẴN SÀNG' : 'CHƯA'}</span>
         </div>
       `;
     });
 
-    // Các slot còn trống
     for (let i = room.players.length; i < room.maxPlayers; i++) {
       html += `
         <div class="room-slot empty">
           <span class="slot-avatar">⏳</span>
           <div class="slot-text">
-            <span class="slot-name">Đang chờ người chơi ${i + 1}...</span>
-            <span class="slot-role">Đội ${room.mode === '2v2' ? (i < 2 ? 1 : 2) : 2}</span>
+            <span class="slot-name">Đang chờ đối thủ vào phòng...</span>
+            <span class="slot-role">✈️ Đội ${room.mode === '2v2' ? (i < 2 ? 1 : 2) : 2}</span>
           </div>
           <span class="slot-badge wait">CHỜ</span>
         </div>
@@ -652,12 +736,12 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     const allReady = room.players.length >= 2 && room.players.every((p) => p.ready);
     if (isHost && allReady) {
       btnHostStart.classList.remove('hidden');
-      roomStatusNote.innerText = 'Tất cả đã sẵn sàng! Bấm nút bên dưới để vào trận.';
+      roomStatusNote.innerText = '🔥 Tất cả đã sẵn sàng! Bấm BẮT ĐẦU TRẬN NGAY!';
     } else {
       btnHostStart.classList.add('hidden');
       roomStatusNote.innerText = room.players.length < room.maxPlayers
         ? 'Đang chờ đối thủ vào phòng...'
-        : 'Đang chờ tất cả nhấn SẴN SÀNG...';
+        : 'Đang chờ tất cả người chơi nhấn SẴN SÀNG...';
     }
   });
 
@@ -676,31 +760,42 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     gameManager.startGame('pro', room.mode, yourSlot);
   });
 
-  // Xử lý tạo phòng 1v1
+  // Nút 1-chạm sao chép link mời bạn bè
+  document.getElementById('btn-copy-invite-link').addEventListener('click', () => {
+    const code = displayRoomCode.innerText;
+    const inviteUrl = `${window.location.origin}${window.location.pathname}?room=${code}`;
+    navigator.clipboard.writeText(inviteUrl).then(() => {
+      alert(`Đã sao chép link mời bạn:\n${inviteUrl}\n\nBạn bè chỉ cần bấm link là vào thẳng phòng!`);
+    }).catch(() => {
+      alert(`Mã phòng của bạn: ${code}`);
+    });
+  });
+
+  // Tạo phòng 1v1
   document.getElementById('btn-create-room-1v1').addEventListener('click', () => {
     closeAllDrawers();
     network.createRoom('1v1', playerName, selectedChar.avatar, selectedChar.color);
   });
 
-  // Xử lý tạo phòng 2v2
+  // Tạo phòng 2v2
   document.getElementById('btn-create-room-2v2').addEventListener('click', () => {
     closeAllDrawers();
     network.createRoom('2v2', playerName, selectedChar.avatar, selectedChar.color);
   });
 
-  // Xử lý ghép trận nhanh 1v1
+  // Ghép nhanh 1v1
   document.getElementById('btn-quick-match-1v1').addEventListener('click', () => {
     closeAllDrawers();
     network.quickMatch('1v1', playerName, selectedChar.avatar, selectedChar.color);
   });
 
-  // Xử lý ghép trận nhanh 2v2
+  // Ghép nhanh 2v2
   document.getElementById('btn-quick-match-2v2').addEventListener('click', () => {
     closeAllDrawers();
     network.quickMatch('2v2', playerName, selectedChar.avatar, selectedChar.color);
   });
 
-  // Vào phòng bằng mã 4 ký tự
+  // Vào phòng bằng mã
   document.getElementById('btn-join-room').addEventListener('click', () => {
     const code = document.getElementById('room-code-input').value.trim();
     if (code.length >= 3) {
@@ -711,15 +806,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     }
   });
 
-  // Copy mã phòng
-  document.getElementById('btn-copy-code').addEventListener('click', () => {
-    const code = displayRoomCode.innerText;
-    navigator.clipboard.writeText(code).then(() => {
-      alert(`Đã sao chép mã phòng: ${code}`);
-    });
-  });
-
-  // Nút Sẵn sàng trong phòng Online
+  // Nút Sẵn sàng
   btnRoomReady.addEventListener('click', () => {
     network.toggleReady();
   });
@@ -789,7 +876,9 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     document.getElementById('main-menu').classList.remove('hidden');
   });
 
-  // Touch controls
+  // ==========================================
+  // CẢM ỨNG MOBILE PRO (SPORT CONTROLS)
+  // ==========================================
   if (isTouchDevice) {
     const btnHit = document.getElementById('btn-hit');
     const btnSmash = document.getElementById('btn-smash');
@@ -832,9 +921,34 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
 
   return {
     updateHUD: (data) => {
-      document.getElementById('player-score').innerText = data.playerScore;
-      document.getElementById('bot-score').innerText = data.botScore;
-      document.getElementById('rally-text').innerText = `RALLY ${data.rallyCount}`;
+      const pScoreElem = document.getElementById('player-score');
+      const bScoreElem = document.getElementById('bot-score');
+      if (pScoreElem && pScoreElem.innerText !== String(data.playerScore)) {
+        pScoreElem.innerText = data.playerScore;
+        pScoreElem.classList.add('score-pop');
+        setTimeout(() => pScoreElem.classList.remove('score-pop'), 450);
+      }
+      if (bScoreElem && bScoreElem.innerText !== String(data.botScore)) {
+        bScoreElem.innerText = data.botScore;
+        bScoreElem.classList.add('score-pop');
+        setTimeout(() => bScoreElem.classList.remove('score-pop'), 450);
+      }
+
+      const rallyText = document.getElementById('rally-text');
+      if (rallyText) rallyText.innerText = `RALLY ${data.rallyCount}`;
+
+      // Hiển thị chỉ báo ai đang giao cầu
+      const sP1 = document.getElementById('hud-serve-p1');
+      const sBot = document.getElementById('hud-serve-bot');
+      if (sP1 && sBot) {
+        if (data.currentServer === 'player') {
+          sP1.classList.remove('hidden');
+          sBot.classList.add('hidden');
+        } else {
+          sP1.classList.add('hidden');
+          sBot.classList.remove('hidden');
+        }
+      }
 
       if (data.title) {
         bannerTitle.innerText = data.title;

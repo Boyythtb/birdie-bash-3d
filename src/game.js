@@ -100,7 +100,7 @@ export class GameManager {
     });
 
     window.addEventListener('mousedown', (e) => {
-      if (e.target.closest('#main-menu') || e.target.closest('#game-over-modal') || e.target.closest('.action-buttons') || e.target.closest('.hud-hint-btn') || e.target.closest('.rename-modal-overlay')) {
+      if (e.target.closest('#main-menu') || e.target.closest('#game-over-modal') || e.target.closest('.action-buttons') || e.target.closest('.hud-hint-btn') || e.target.closest('.modal-overlay')) {
         return;
       }
       if (this.state === 'SERVE') {
@@ -149,7 +149,7 @@ export class GameManager {
       }
     });
 
-    // 3. Đồng bộ điểm số từ phòng
+    // 3. Đồng bộ điểm số
     network.on('remoteScore', (data) => {
       if (!this.isMultiplayer) return;
       this.playerScore = data.team1Score;
@@ -176,18 +176,19 @@ export class GameManager {
     this.stateTimer = 0;
     this.rallyCount = 0;
 
-    this.player.group.position.set(1.2, 0, 4.6);
+    // Đặt vị trí người chơi và đối thủ
+    this.player.group.position.set(1.0, 0, 4.6);
     this.player.state = 'idle';
-    this.bot.group.position.set(-1.2, 0, -4.6);
+    this.bot.group.position.set(-1.0, 0, -4.6);
     this.bot.state = 'idle';
 
+    // CẦU LUÔN NẰM NGAY TRÊN TAY NGƯỜI PHÁT CẦU - KHÔNG BAO GIỜ BỊ RỜI NHAU
+    this.shuttlecock.ground();
     if (this.currentServer === 'player') {
-      this.shuttlecock.ground();
-      this.shuttlecock.position.set(1.2, 1.1, 4.2);
+      this.shuttlecock.position.set(1.35, 1.05, 4.25);
       this.notifyUI('BẠN PHÁT CẦU', 'Chỉ cần nhấn [SPACE] hoặc Click chuột để giao cầu', 'info');
     } else {
-      this.shuttlecock.ground();
-      this.shuttlecock.position.set(-1.2, 1.1, -4.2);
+      this.shuttlecock.position.set(-1.35, 1.05, -4.25);
       this.notifyUI('ĐỐI THỦ PHÁT CẦU', 'Chuẩn bị đón cầu!', 'warning');
 
       if (!this.isMultiplayer) {
@@ -208,7 +209,7 @@ export class GameManager {
 
     const targetX = THREE.MathUtils.clamp(this.aimTarget.x, -1.9, 1.9);
     const targetZ = -4.8;
-    const startPos = this.player.group.position.clone().add(new THREE.Vector3(0.2, 1.1, -0.4));
+    const startPos = this.player.group.position.clone().add(new THREE.Vector3(0.35, 1.1, -0.35));
 
     const vel = this.calculateTrajectory(startPos, new THREE.Vector3(targetX, 0, targetZ), 'clear', 0.95);
 
@@ -240,7 +241,7 @@ export class GameManager {
 
     const targetX = (Math.random() - 0.5) * 2.2;
     const targetZ = 4.8;
-    const startPos = this.bot.group.position.clone().add(new THREE.Vector3(-0.2, 1.1, 0.4));
+    const startPos = this.bot.group.position.clone().add(new THREE.Vector3(-0.35, 1.1, 0.35));
 
     const vel = this.calculateTrajectory(startPos, new THREE.Vector3(targetX, 0, targetZ), 'clear', 0.95);
 
@@ -253,7 +254,6 @@ export class GameManager {
   }
 
   // CƠ CHẾ ĐÁNH THÔNG MINH THEO NGỮ CẢNH (Contextual Smart Hit)
-  // 1 Nút duy nhất [SPACE] / Click: Tự động nhận diện Smash / Drop / Dive / Clear
   attemptSmartHit() {
     const s = this.shuttlecock;
     if (!s.isAirborne || s.lastHitter === 'player') return;
@@ -262,20 +262,20 @@ export class GameManager {
     const distXZ = new THREE.Vector2(pPos.x - s.position.x, pPos.z - s.position.z).length();
     const height = s.position.y;
 
-    // 1. Cầu ở xa (> 1.4m) và sắp tiếp đất -> Tự động Nhoài người Dive cứu cầu!
-    if (distXZ > 1.35 && distXZ <= 2.65 && height < 1.15) {
+    // 1. Cầu ở xa (> 1.3m) và sắp tiếp đất -> Tự động Nhoài người Dive cứu cầu!
+    if (distXZ > 1.3 && distXZ <= 2.8 && height < 1.15) {
       this.attemptPlayerDive();
       return;
     }
 
     // 2. Cầu trên cao (height >= 1.35m) -> Tự động BẬT NHẢY SMASH đập cắm sàn cực đã!
-    if (height >= 1.35 && distXZ <= 2.2) {
+    if (height >= 1.35 && distXZ <= 2.3) {
       this.attemptPlayerHit('smash');
       return;
     }
 
     // 3. Đang đứng sát lưới (pPos.z < 2.2m) và cầu tầm thấp -> Tự động BỎ NHỎ sát lưới (Drop)
-    if (pPos.z < 2.2 && height < 1.35 && distXZ <= 2.0) {
+    if (pPos.z < 2.2 && height < 1.35 && distXZ <= 2.1) {
       this.attemptPlayerHit('drop');
       return;
     }
@@ -337,14 +337,15 @@ export class GameManager {
     const distXZ = new THREE.Vector2(pPos.x - s.position.x, pPos.z - s.position.z).length();
     const height = s.position.y;
 
-    const maxReach = isDive ? 2.65 : 2.15;
+    const maxReach = isDive ? 2.85 : 2.25;
 
     if (distXZ <= maxReach && height >= 0.1 && height <= 4.0) {
-      // HỖ TRỢ NAM CHÂM VỊ TRÍ (Magnetic Assist)
+      // HỖ TRỢ NAM CHÂM VỊ TRÍ (Magnetic Step):
+      // Người chơi lướt nhanh về đúng điểm ngọt cạnh quả cầu để vợt chạm cầu chính xác 100%!
       const sweetOffset = 0.35;
       const targetCharX = s.position.x > pPos.x ? s.position.x - sweetOffset : s.position.x + sweetOffset;
-      this.player.group.position.x = THREE.MathUtils.lerp(pPos.x, targetCharX, 0.45);
-      this.player.group.position.z = THREE.MathUtils.lerp(pPos.z, s.position.z + 0.3, 0.45);
+      this.player.group.position.x = THREE.MathUtils.lerp(pPos.x, targetCharX, 0.65);
+      this.player.group.position.z = THREE.MathUtils.lerp(pPos.z, s.position.z + 0.32, 0.65);
 
       // CỬA SỔ VÒNG TRÒN TIMING (Perfect / Good / Early)
       const timingRatio = s.initialTimeToLand > 0 ? s.timeToLand / s.initialTimeToLand : 0;
@@ -541,6 +542,7 @@ export class GameManager {
         playerScore: this.playerScore,
         botScore: this.botScore,
         rallyCount: this.rallyCount,
+        currentServer: this.currentServer,
         state: this.state
       });
     }
@@ -549,12 +551,36 @@ export class GameManager {
   update(dt) {
     this.stateTimer += dt;
 
+    // TRONG LÚC GIAO CẦU (SERVE):
+    // QUẢ CẦU BẮT BUỘC ĐI THEO NGƯỜI PHÁT CẦU - KHÔNG BAO GIỜ BỊ NGƯỜI 1 NƠI CẦU 1 NƠI!
+    if (this.state === 'SERVE') {
+      if (this.currentServer === 'player') {
+        const px = this.player.group.position.x;
+        const pz = this.player.group.position.z;
+        this.shuttlecock.position.set(
+          px + 0.35,
+          1.05 + Math.sin(this.stateTimer * 4.5) * 0.04,
+          pz - 0.35
+        );
+        this.shuttlecock.velocity.set(0, 0, 0);
+      } else {
+        const bx = this.bot.group.position.x;
+        const bz = this.bot.group.position.z;
+        this.shuttlecock.position.set(
+          bx - 0.35,
+          1.05 + Math.sin(this.stateTimer * 4.5) * 0.04,
+          bz + 0.35
+        );
+        this.shuttlecock.velocity.set(0, 0, 0);
+      }
+    }
+
     if (this.state === 'RALLY') {
       this.checkNetCollision();
       this.checkGroundHit();
     }
 
-    // Di chuyển người chơi theo phím
+    // Di chuyển người chơi theo phím hoặc Joystick
     const moveDir = { x: 0, z: 0 };
     if (this.keys['KeyA'] || this.keys['ArrowLeft']) moveDir.x -= 1;
     if (this.keys['KeyD'] || this.keys['ArrowRight']) moveDir.x += 1;
@@ -574,7 +600,7 @@ export class GameManager {
 
     this.player.update(dt, moveDir);
 
-    // Gửi vị trí qua WebSocket nếu đang đánh online
+    // Gửi vị trí qua mạng nếu đang đánh Online
     if (this.isMultiplayer && (moveDir.x !== 0 || moveDir.z !== 0 || this.player.state !== 'idle')) {
       network.sendMove(this.player.group.position.x, this.player.group.position.z, this.player.state);
     }
