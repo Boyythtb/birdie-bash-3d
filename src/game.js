@@ -36,19 +36,19 @@ export class GameManager {
     this.shakeIntensity = 0;
     this.bufferedAction = null;
 
-    // 1. Góc nhìn Lobby & Sân thi đấu (Camera sau lưng người chơi nhìn thẳng sân đấu, cân đối và chuẩn xác)
-    this.lobbyCamPos = new THREE.Vector3(0, 8.4, 13.8);
-    this.lobbyCamLookAt = new THREE.Vector3(0, 0.6, -0.8);
+    // 1. Góc nhìn Màn hình chờ & Lúc hết game (Isometric 3/4 góc chéo đặc trưng chuẩn Birdie Bash)
+    this.lobbyCamPos = new THREE.Vector3(-7.2, 10.5, 13.2);
+    this.lobbyCamLookAt = new THREE.Vector3(1.0, 0.4, -0.5);
 
     // 2. Góc nhìn Trong Trận Đấu (Camera sau lưng người chơi nhìn thẳng sân đấu như Màn 2)
     this.matchCamPos = new THREE.Vector3(0, 8.0, 13.4);
     this.matchCamLookAt = new THREE.Vector3(0, 0.6, -0.8);
 
     // Vị trí camera động được nội suy mượt mà (Smooth Lerp)
-    this.currentCamPos = this.matchCamPos.clone();
-    this.currentCamLookAt = this.matchCamLookAt.clone();
-    this.defaultCamPos = this.matchCamPos;
-    this.defaultCamLookAt = this.matchCamLookAt;
+    this.currentCamPos = this.lobbyCamPos.clone();
+    this.currentCamLookAt = this.lobbyCamLookAt.clone();
+    this.defaultCamPos = this.lobbyCamPos;
+    this.defaultCamLookAt = this.lobbyCamLookAt;
 
     // Lưu trữ phím điều khiển & Cảm ứng vuốt di chuyển
     this.keys = {};
@@ -657,8 +657,12 @@ export class GameManager {
     this.state = 'GAMEOVER';
     if (winner === 'player') {
       sounds.playCheer();
+      this.player.playAction('celebrate');
+      if (this.teammate && this.isDoubles) this.teammate.playAction('celebrate');
       this.notifyUI('🏆 BẠN ĐÃ CHIẾN THẮNG! 🏆', `Chiến thắng với tỷ số ${this.playerScore} - ${this.botScore}!`, 'win');
     } else {
+      this.bot.playAction('celebrate');
+      if (this.bot2 && this.isDoubles) this.bot2.playAction('celebrate');
       this.notifyUI('💔 ĐỐI THỦ THẮNG CUỘC!', `Tỷ số: ${this.playerScore} - ${this.botScore}. Hãy thử lại nhé!`, 'lose');
     }
   }
@@ -989,10 +993,10 @@ export class GameManager {
     this.aimReticle.visible = (this.state === 'RALLY' || this.state === 'SERVE');
 
     // Chuyển đổi góc camera mượt mà:
-    // Khi ở Lobby -> Isometric 3/4 góc chéo
-    // Khi vào trận (SERVE, RALLY, POINT, GAMEOVER) -> Camera sau lưng người chơi nhìn thẳng như Màn 2
-    const targetCamPos = (this.state === 'MENU') ? this.lobbyCamPos : this.matchCamPos;
-    const targetLookAt = (this.state === 'MENU') ? this.lobbyCamLookAt : this.matchCamLookAt;
+    // Khi ở Màn hình chờ (MENU) hoặc lúc hết game (GAMEOVER) -> Quay về màn hình chéo 3/4 Isometric đặc trưng
+    // Khi đang trong trận đấu (SERVE, RALLY, POINT) -> Camera sau lưng người chơi nhìn thẳng như Màn 2
+    const targetCamPos = (this.state === 'MENU' || this.state === 'GAMEOVER') ? this.lobbyCamPos : this.matchCamPos;
+    const targetLookAt = (this.state === 'MENU' || this.state === 'GAMEOVER') ? this.lobbyCamLookAt : this.matchCamLookAt;
 
     this.currentCamPos.lerp(targetCamPos, 0.08);
     this.currentCamLookAt.lerp(targetLookAt, 0.08);

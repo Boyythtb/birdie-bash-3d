@@ -14,10 +14,10 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xfdf2f8);
 scene.fog = new THREE.FogExp2(0xfdf2f8, 0.006);
 
-// GÓC CAMERA CHUẨN THI ĐẤU CẦU LÔNG (Nhìn thẳng từ sau lưng người chơi, cân đối và chuẩn xác)
+// GÓC CAMERA ISOMETRIC 3/4 ĐẶC TRƯNG CHUẨN BIRDIE BASH (Màn hình chờ góc chéo)
 const camera = new THREE.PerspectiveCamera(46, window.innerWidth / window.innerHeight, 0.1, 100);
-camera.position.set(0, 8.4, 13.8);
-camera.lookAt(0, 0.6, -0.8);
+camera.position.set(-7.2, 10.5, 13.2);
+camera.lookAt(1.0, 0.4, -0.5);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -168,7 +168,7 @@ uiHandler = setupUI(
 const container = document.getElementById('canvas-container');
 container.appendChild(renderer.domElement);
 
-// Hàm cập nhật tỷ lệ camera theo màn hình (Luôn giữ góc nhìn thẳng chuẩn thi đấu)
+// Hàm cập nhật tỷ lệ camera theo màn hình (Tự động thích ứng nếu là điện thoại dọc)
 function updateCameraAspect() {
   const isPortrait = window.innerWidth < window.innerHeight;
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -178,15 +178,17 @@ function updateCameraAspect() {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
   if (isPortrait) {
-    // Góc nhìn dọc: Thẳng từ sau lưng, bao quát toàn bộ 2 nửa sân
-    gameManager.lobbyCamPos.set(0, 9.6, 14.2);
-    gameManager.lobbyCamLookAt.set(0, 0.5, -0.6);
+    // Màn hình chờ & lúc hết game: Góc chéo 3/4 Isometric sinh động
+    gameManager.lobbyCamPos.set(-5.8, 12.2, 14.8);
+    gameManager.lobbyCamLookAt.set(1.0, 0.4, -0.4);
+    // Trong lúc thi đấu (SERVE, RALLY, POINT): Camera thẳng từ sau lưng người chơi nhìn dọc sân
     gameManager.matchCamPos.set(0, 9.6, 14.2);
     gameManager.matchCamLookAt.set(0, 0.5, -0.6);
   } else {
-    // Góc nhìn ngang: Thẳng từ sau lưng, cân đối và sắc nét
-    gameManager.lobbyCamPos.set(0, 8.0, 13.4);
-    gameManager.lobbyCamLookAt.set(0, 0.6, -0.8);
+    // Màn hình chờ & lúc hết game: Góc chéo 3/4 Isometric sinh động
+    gameManager.lobbyCamPos.set(-7.2, 10.5, 13.2);
+    gameManager.lobbyCamLookAt.set(1.0, 0.4, -0.5);
+    // Trong lúc thi đấu (SERVE, RALLY, POINT): Camera thẳng từ sau lưng người chơi nhìn dọc sân
     gameManager.matchCamPos.set(0, 8.0, 13.4);
     gameManager.matchCamLookAt.set(0, 0.6, -0.8);
   }
