@@ -1012,25 +1012,13 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     btn.addEventListener('click', trigger);
   };
 
-  bindAction('btn-hit', () => {
-    if (gameManager.state === 'SERVE') {
-      if (gameManager.currentServer === 'player') gameManager.playerServe();
-    } else if (gameManager.state === 'RALLY') {
-      gameManager.attemptSmartHit();
-    }
-  });
+  bindAction('btn-hit', () => gameManager.handlePlayerAction('hit'));
 
-  bindAction('btn-smash', () => {
-    if (gameManager.state === 'RALLY') gameManager.attemptPlayerHit('smash');
-  });
+  bindAction('btn-smash', () => gameManager.handlePlayerAction('smash'));
 
-  bindAction('btn-drop', () => {
-    if (gameManager.state === 'RALLY') gameManager.attemptPlayerHit('drop');
-  });
+  bindAction('btn-drop', () => gameManager.handlePlayerAction('drop'));
 
-  bindAction('btn-dive', () => {
-    if (gameManager.state === 'RALLY') gameManager.attemptPlayerDive();
-  });
+  bindAction('btn-dive', () => gameManager.handlePlayerAction('dive'));
 
   // Chạm trực tiếp vào sân đấu để phát cầu hoặc đánh nhanh nếu không dùng nút
   window.addEventListener('touchstart', (e) => {
