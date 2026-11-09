@@ -1,0 +1,30 @@
+{
+  "name": "Tboy Badminton 3D · Tboy Studio",
+  "short_name": "Tboy Badminton",
+  "description": "Game Cầu Lông 3D Vui Nhộn · Tranh Tài Đỉnh Cao Solo 1v1 & Đánh Đôi 2v2",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fdf2f8",
+  "theme_color": "#f43f5e",
+  "categories": ["games", "sports"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

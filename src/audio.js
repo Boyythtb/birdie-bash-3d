@@ -1,4 +1,5 @@
-// Audio synthesis using Web Audio API for responsive, zero-latency, dependency-free sound effects
+// Âm thanh thực tế, êm ái chuẩn môn Cầu Lông (Real Badminton Acoustics Synthesis)
+// Sử dụng Web Audio API không độ trễ, không phụ thuộc file ngoài, âm sắc nhẹ nhàng tự nhiên
 
 class SoundManager {
   constructor() {
@@ -16,14 +17,14 @@ class SoundManager {
     }
   }
 
-  // Tiếng vụt vợt xé gió (Whoosh)
+  // 1. Tiếng vụt vợt nhẹ nhàng xé gió (Gentle Whoosh)
   playSwing() {
     if (!this.enabled) return;
     this.init();
     const ctx = this.ctx;
     const now = ctx.currentTime;
 
-    const bufferSize = ctx.sampleRate * 0.15;
+    const bufferSize = Math.floor(ctx.sampleRate * 0.12);
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
@@ -35,114 +36,190 @@ class SoundManager {
 
     const filter = ctx.createBiquadFilter();
     filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(300, now);
-    filter.frequency.exponentialRampToValueAtTime(1400, now + 0.08);
-    filter.frequency.exponentialRampToValueAtTime(400, now + 0.15);
-    filter.Q.value = 3.0;
+    filter.frequency.setValueAtTime(380, now);
+    filter.frequency.exponentialRampToValueAtTime(820, now + 0.05);
+    filter.frequency.exponentialRampToValueAtTime(320, now + 0.12);
+    filter.Q.value = 2.0;
 
     const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.01, now);
-    gain.gain.linearRampToValueAtTime(0.25, now + 0.06);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.09, now + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
 
     noise.connect(filter);
     filter.connect(gain);
     gain.connect(ctx.destination);
 
     noise.start(now);
-    noise.stop(now + 0.15);
+    noise.stop(now + 0.12);
   }
 
-  // Tiếng đánh cầu thường (Hit / Clear) hoặc Smash cực bốc
+  // 2. Tiếng gõ chạm mặt vợt chuẩn đế bần (Real Badminton Cork Hit / Smash)
+  // Nghe tiếng "póc" / "phốp" giòn tan, thanh thoát, không bị chói tai hay âm điện tử giả tạo
   playHit(isSmash = false) {
     if (!this.enabled) return;
     this.init();
     const ctx = this.ctx;
     const now = ctx.currentTime;
 
-    // 1. Âm thanh màng lưới vợt bật (Racket snap)
-    const osc = ctx.createOscillator();
-    const oscGain = ctx.createGain();
-
-    osc.type = isSmash ? 'triangle' : 'sine';
-    const startFreq = isSmash ? 920 : 620;
-    const endFreq = isSmash ? 180 : 120;
-
-    osc.frequency.setValueAtTime(startFreq, now);
-    osc.frequency.exponentialRampToValueAtTime(endFreq, now + 0.09);
-
-    oscGain.gain.setValueAtTime(isSmash ? 0.8 : 0.45, now);
-    oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
-
-    osc.connect(oscGain);
-    oscGain.connect(ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.09);
-
-    // 2. Thêm tiếng nổ đanh cho Smash (Crisp transient pop)
-    if (isSmash) {
-      const bufferSize = ctx.sampleRate * 0.06;
-      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) {
-        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.012));
+    if (!isSmash) {
+      // ==========================================
+      // CÚ ĐÁNH THƯỜNG (Clear / Phông cầu / Đánh trả tiêu chuẩn):
+      // Tiếng "póc" tự nhiên của đế bần chạm cước vợt căng 26-28 lbs
+      // ==========================================
+      
+      // Thành phần 1: Tiếng nổ tách đanh gọn (Cork contact transient)
+      const noiseLen = Math.floor(ctx.sampleRate * 0.02);
+      const noiseBuf = ctx.createBuffer(1, noiseLen, ctx.sampleRate);
+      const ndata = noiseBuf.getChannelData(0);
+      for (let i = 0; i < noiseLen; i++) {
+        ndata[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.004));
       }
-      const noise = ctx.createBufferSource();
-      noise.buffer = buffer;
+      const noiseSource = ctx.createBufferSource();
+      noiseSource.buffer = noiseBuf;
 
-      const filter = ctx.createBiquadFilter();
-      filter.type = 'highpass';
-      filter.frequency.value = 1400;
+      const noiseFilter = ctx.createBiquadFilter();
+      noiseFilter.type = 'bandpass';
+      noiseFilter.frequency.value = 1450;
+      noiseFilter.Q.value = 3.2;
 
-      const popGain = ctx.createGain();
-      popGain.gain.setValueAtTime(0.75, now);
-      popGain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.18, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
 
-      noise.connect(filter);
-      filter.connect(popGain);
-      popGain.connect(ctx.destination);
+      noiseSource.connect(noiseFilter);
+      noiseFilter.connect(noiseGain);
+      noiseGain.connect(ctx.destination);
+      noiseSource.start(now);
 
-      noise.start(now);
-      noise.stop(now + 0.06);
+      // Thành phần 2: Âm rung đanh của khung & mặt cước (String bed resonance)
+      const osc = ctx.createOscillator();
+      const oscGain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(940, now);
+      osc.frequency.exponentialRampToValueAtTime(720, now + 0.055);
+
+      oscGain.gain.setValueAtTime(0.22, now);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.055);
+
+      osc.connect(oscGain);
+      oscGain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.055);
+
+      // Thành phần 3: Độ trầm ấm nhẹ của thân cầu (Hollow body pop)
+      const bodyOsc = ctx.createOscillator();
+      const bodyGain = ctx.createGain();
+      bodyOsc.type = 'sine';
+      bodyOsc.frequency.setValueAtTime(420, now);
+      bodyOsc.frequency.exponentialRampToValueAtTime(260, now + 0.045);
+
+      bodyGain.gain.setValueAtTime(0.12, now);
+      bodyGain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
+
+      bodyOsc.connect(bodyGain);
+      bodyGain.connect(ctx.destination);
+      bodyOsc.start(now);
+      bodyOsc.stop(now + 0.045);
+
+    } else {
+      // ==========================================
+      // CÚ SMASH (Đập cầu uy lực tóe lửa):
+      // Tiếng "bốp!" / "chát!" cực giòn và uy lực của cước đập búa bổ vào tâm ngọt (sweetspot)
+      // ==========================================
+
+      // Thành phần 1: Tiếng nổ tách đanh xé gió cực bén (Crisp string snap)
+      const snapLen = Math.floor(ctx.sampleRate * 0.035);
+      const snapBuf = ctx.createBuffer(1, snapLen, ctx.sampleRate);
+      const sdata = snapBuf.getChannelData(0);
+      for (let i = 0; i < snapLen; i++) {
+        sdata[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.006));
+      }
+      const snapSource = ctx.createBufferSource();
+      snapSource.buffer = snapBuf;
+
+      const snapFilter = ctx.createBiquadFilter();
+      snapFilter.type = 'bandpass';
+      snapFilter.frequency.value = 1950;
+      snapFilter.Q.value = 2.4;
+
+      const snapGain = ctx.createGain();
+      snapGain.gain.setValueAtTime(0.32, now);
+      snapGain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
+
+      snapSource.connect(snapFilter);
+      snapFilter.connect(snapGain);
+      snapGain.connect(ctx.destination);
+      snapSource.start(now);
+
+      // Thành phần 2: Âm cước căng cực nảy (High-tension string ping)
+      const osc = ctx.createOscillator();
+      const oscGain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1250, now);
+      osc.frequency.exponentialRampToValueAtTime(580, now + 0.075);
+
+      oscGain.gain.setValueAtTime(0.32, now);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.075);
+
+      osc.connect(oscGain);
+      oscGain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.075);
+
+      // Thành phần 3: Lực đập uy lực lan tỏa nhẹ (Solid punch)
+      const subOsc = ctx.createOscillator();
+      const subGain = ctx.createGain();
+      subOsc.type = 'sine';
+      subOsc.frequency.setValueAtTime(240, now);
+      subOsc.frequency.exponentialRampToValueAtTime(110, now + 0.065);
+
+      subGain.gain.setValueAtTime(0.18, now);
+      subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.065);
+
+      subOsc.connect(subGain);
+      subGain.connect(ctx.destination);
+      subOsc.start(now);
+      subOsc.stop(now + 0.065);
     }
   }
 
-  // Tiếng bỏ nhỏ (Drop shot chạm nhẹ, êm ái)
+  // 3. Tiếng bỏ nhỏ (Drop shot chạm nhẹ cước êm dịu)
   playDrop() {
     if (!this.enabled) return;
     this.init();
     const ctx = this.ctx;
     const now = ctx.currentTime;
 
+    // Tiếng chạm nhẹ nhàng, thanh thoát
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(540, now);
-    osc.frequency.exponentialRampToValueAtTime(320, now + 0.07);
+    osc.frequency.setValueAtTime(680, now);
+    osc.frequency.exponentialRampToValueAtTime(480, now + 0.04);
 
-    gain.gain.setValueAtTime(0.25, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+    gain.gain.setValueAtTime(0.14, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
 
     osc.connect(gain);
     gain.connect(ctx.destination);
-
     osc.start(now);
-    osc.stop(now + 0.07);
+    osc.stop(now + 0.04);
   }
 
-  // Tiếng nhoài người cứu cầu (Dive slide / floor brush)
+  // 4. Tiếng nhoài người cứu cầu (Dive slide / ma sát sàn êm ái)
   playDive() {
     if (!this.enabled) return;
     this.init();
     const ctx = this.ctx;
     const now = ctx.currentTime;
 
-    const bufferSize = ctx.sampleRate * 0.25;
+    const bufferSize = Math.floor(ctx.sampleRate * 0.18);
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
-      data[i] = Math.random() * 2 - 1;
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.08));
     }
 
     const noise = ctx.createBufferSource();
@@ -150,23 +227,23 @@ class SoundManager {
 
     const filter = ctx.createBiquadFilter();
     filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(800, now);
-    filter.frequency.linearRampToValueAtTime(300, now + 0.25);
+    filter.frequency.setValueAtTime(550, now);
+    filter.frequency.linearRampToValueAtTime(280, now + 0.18);
 
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0.01, now);
-    gain.gain.linearRampToValueAtTime(0.3, now + 0.05);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+    gain.gain.linearRampToValueAtTime(0.12, now + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
 
     noise.connect(filter);
     filter.connect(gain);
     gain.connect(ctx.destination);
 
     noise.start(now);
-    noise.stop(now + 0.25);
+    noise.stop(now + 0.18);
   }
 
-  // Âm thanh Timing chuẩn xác (Perfect / Good chime)
+  // 5. Âm thanh Timing chuẩn xác (Chuông thanh thoát, không lấn át)
   playTiming(isPerfect = true) {
     if (!this.enabled) return;
     this.init();
@@ -178,19 +255,19 @@ class SoundManager {
 
     osc.type = 'sine';
     osc.frequency.setValueAtTime(isPerfect ? 1318.51 : 987.77, now); // E6 or B5
-    osc.frequency.exponentialRampToValueAtTime(isPerfect ? 1760.0 : 1318.51, now + 0.12);
+    osc.frequency.exponentialRampToValueAtTime(isPerfect ? 1567.98 : 1174.66, now + 0.09);
 
-    gain.gain.setValueAtTime(0.2, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+    gain.gain.setValueAtTime(isPerfect ? 0.11 : 0.08, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
 
     osc.connect(gain);
     gain.connect(ctx.destination);
 
     osc.start(now);
-    osc.stop(now + 0.16);
+    osc.stop(now + 0.12);
   }
 
-  // Tiếng cầu chạm đất (Floor tap)
+  // 6. Tiếng cầu chạm đất (Floor tap - nhẹ như lông vũ và đế bần tiếp đất)
   playFloorTap() {
     if (!this.enabled) return;
     this.init();
@@ -201,55 +278,66 @@ class SoundManager {
     const gain = ctx.createGain();
 
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(140, now);
-    osc.frequency.exponentialRampToValueAtTime(45, now + 0.1);
+    osc.frequency.setValueAtTime(450, now);
+    osc.frequency.exponentialRampToValueAtTime(180, now + 0.04);
 
-    gain.gain.setValueAtTime(0.25, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+    gain.gain.setValueAtTime(0.11, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
 
     osc.connect(gain);
     gain.connect(ctx.destination);
 
     osc.start(now);
-    osc.stop(now + 0.1);
+    osc.stop(now + 0.04);
   }
 
-  // Tiếng còi trọng tài (Whistle khi ghi điểm)
+  // 7. Tiếng còi trọng tài (Whistle - 2 âm ấm áp, không chói gắt)
   playWhistle() {
     if (!this.enabled) return;
     this.init();
     const ctx = this.ctx;
     const now = ctx.currentTime;
 
-    const osc = ctx.createOscillator();
+    // Hài âm kép như còi Fox 40 thực thụ (2050Hz & 2350Hz)
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
     const gain = ctx.createGain();
 
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(2600, now);
-    osc.frequency.linearRampToValueAtTime(2900, now + 0.08);
-    osc.frequency.linearRampToValueAtTime(2600, now + 0.16);
-    osc.frequency.linearRampToValueAtTime(2850, now + 0.28);
+    osc1.type = 'sine';
+    osc2.type = 'sine';
+
+    osc1.frequency.setValueAtTime(2050, now);
+    osc2.frequency.setValueAtTime(2350, now);
+
+    // Rung nhẹ (flutter)
+    osc1.frequency.linearRampToValueAtTime(2150, now + 0.08);
+    osc1.frequency.linearRampToValueAtTime(2050, now + 0.18);
+    osc2.frequency.linearRampToValueAtTime(2450, now + 0.08);
+    osc2.frequency.linearRampToValueAtTime(2350, now + 0.18);
 
     gain.gain.setValueAtTime(0.001, now);
-    gain.gain.linearRampToValueAtTime(0.2, now + 0.03);
-    gain.gain.setValueAtTime(0.2, now + 0.25);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    gain.gain.linearRampToValueAtTime(0.08, now + 0.02);
+    gain.gain.setValueAtTime(0.08, now + 0.16);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
 
-    osc.connect(gain);
+    osc1.connect(gain);
+    osc2.connect(gain);
     gain.connect(ctx.destination);
 
-    osc.start(now);
-    osc.stop(now + 0.35);
+    osc1.start(now);
+    osc2.start(now);
+    osc1.stop(now + 0.25);
+    osc2.stop(now + 0.25);
   }
 
-  // Tiếng khán giả hò reo cổ vũ (Cheer)
+  // 8. Tiếng khán giả hò reo cổ vũ (Cheer ấm áp)
   playCheer() {
     if (!this.enabled) return;
     this.init();
     const ctx = this.ctx;
     const now = ctx.currentTime;
 
-    const bufferSize = ctx.sampleRate * 1.2;
+    const bufferSize = Math.floor(ctx.sampleRate * 0.9);
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
@@ -261,21 +349,21 @@ class SoundManager {
 
     const filter = ctx.createBiquadFilter();
     filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(750, now);
-    filter.Q.value = 1.2;
+    filter.frequency.setValueAtTime(700, now);
+    filter.Q.value = 1.0;
 
     const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.01, now);
-    gain.gain.linearRampToValueAtTime(0.18, now + 0.3);
-    gain.gain.setValueAtTime(0.15, now + 0.7);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.11, now + 0.2);
+    gain.gain.setValueAtTime(0.09, now + 0.5);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
 
     noise.connect(filter);
     filter.connect(gain);
     gain.connect(ctx.destination);
 
     noise.start(now);
-    noise.stop(now + 1.2);
+    noise.stop(now + 0.9);
   }
 }
 
