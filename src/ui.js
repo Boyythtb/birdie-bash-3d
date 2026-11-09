@@ -165,8 +165,9 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
         </div>
       </div>
 
-      <!-- THANH ĐIỀU KHIỂN BÀN PHÍM TRÊN MÁY TÍNH (PC / DESKTOP CONTROLLER HUD) -->
-      <div id="desktop-controls-hud" class="desktop-controls-hud">
+      <!-- THANH ĐIỀU KHIỂN BÀN PHÍM TRÊN MÁY TÍNH (PC / DESKTOP CONTROLLER HUD - TỰ BIẾN MẤT KHI VÀO GAME) -->
+      <div id="desktop-controls-hud" class="desktop-controls-hud faded">
+        <button id="btn-close-desktop-hud" class="btn-close-desktop-hud" title="Ẩn hướng dẫn">✕</button>
         <div class="desktop-key-group">
           <div class="keycap-cluster-wasd">
             <span class="keycap key-w">W</span>
@@ -893,6 +894,48 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     if (modalRename) modalRename.classList.add('hidden');
   };
 
+  // Quản lý hiển thị thanh phím tắt Desktop HUD (Tự động biến mất khi vào game)
+  const desktopHud = document.getElementById('desktop-controls-hud');
+  let desktopHudTimer = null;
+
+  const showDesktopHud = (duration = 3000) => {
+    if (!desktopHud) return;
+    desktopHud.classList.remove('faded', 'hidden');
+    if (desktopHudTimer) clearTimeout(desktopHudTimer);
+    if (duration > 0) {
+      desktopHudTimer = setTimeout(() => {
+        desktopHud.classList.add('faded');
+      }, duration);
+    }
+  };
+
+  const hideDesktopHud = () => {
+    if (!desktopHud) return;
+    if (desktopHudTimer) clearTimeout(desktopHudTimer);
+    desktopHud.classList.add('faded');
+  };
+
+  // Nút đóng thủ công ✕ trên thanh Desktop HUD
+  const btnCloseDesktopHud = document.getElementById('btn-close-desktop-hud');
+  if (btnCloseDesktopHud) {
+    btnCloseDesktopHud.addEventListener('click', (e) => {
+      e.stopPropagation();
+      hideDesktopHud();
+    });
+  }
+
+  // Tự động biến mất ngay lập tức khi người chơi bắt đầu bấm phím hoặc click chuột chơi game
+  window.addEventListener('keydown', (e) => {
+    if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyJ', 'KeyK', 'KeyL', 'ShiftLeft', 'ShiftRight', 'KeyU'].includes(e.code)) {
+      hideDesktopHud();
+    }
+  });
+
+  window.addEventListener('mousedown', (e) => {
+    if (e.target.closest('#desktop-controls-hud') || e.target.closest('#btn-toggle-hints')) return;
+    hideDesktopHud();
+  });
+
   // Đóng modal khi bấm ra ngoài vùng xám (backdrop click)
   [modalOnline, modalBotDiff, modalRoster, modalHow, modalSettings, modalRename].forEach((m) => {
     if (m) {
@@ -974,12 +1017,8 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     document.getElementById('hud-player-name').innerText = playerName.toUpperCase();
     document.getElementById('hud-avatar').innerText = selectedChar.avatar;
 
-    if (!isTouchDevice) {
-      document.getElementById('pc-hints').classList.remove('hidden');
-      setTimeout(() => {
-        document.getElementById('pc-hints').classList.add('hidden');
-      }, 5000);
-    }
+    // Hiển thị thanh phím tắt thoáng qua 3s khi chờ phát cầu rồi tự biến mất không che nhân vật
+    showDesktopHud(3000);
 
     gameManager.startGame(selectedDiff, currentMatchMode === '2v2' ? 'bot-2v2' : 'bot');
   });
@@ -1098,6 +1137,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     document.getElementById('hud').classList.remove('hidden');
     const inGameControls = document.getElementById('in-game-controls');
     if (inGameControls) inGameControls.classList.remove('hidden');
+    showDesktopHud(3000);
     const mode = (room && room.mode === '2v2') ? 'online-2v2' : 'online-1v1';
     gameManager.startGame('pro', mode, network.yourSlot || 0);
   });
@@ -1302,13 +1342,17 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
   // ==========================================
   // HUD VÀ NÚT ĐIỀU KHIỂN
   // ==========================================
-  document.getElementById('btn-toggle-hints').addEventListener('click', () => {
-    const hints = document.getElementById('pc-hints');
-    hints.classList.toggle('hidden');
-  });
-  document.getElementById('btn-close-hints').addEventListener('click', () => {
-    document.getElementById('pc-hints').classList.add('hidden');
-  });
+  const btnToggleHints = document.getElementById('btn-toggle-hints');
+  if (btnToggleHints) {
+    btnToggleHints.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (desktopHud && !desktopHud.classList.contains('faded') && !desktopHud.classList.contains('hidden')) {
+        hideDesktopHud();
+      } else {
+        showDesktopHud(4000);
+      }
+    });
+  }
 
   const modalConfirmExit = document.getElementById('modal-confirm-exit');
   const btnPauseGame = document.getElementById('btn-pause-game');
@@ -1344,6 +1388,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     document.getElementById('hud').classList.remove('hidden');
     const inGameControls = document.getElementById('in-game-controls');
     if (inGameControls) inGameControls.classList.remove('hidden');
+    showDesktopHud(3000);
     const mode = gameManager.isDoubles ? 'bot-2v2' : (gameManager.isMultiplayer ? gameManager.gameMode : 'bot');
     gameManager.startGame(selectedDiff, mode, gameManager.multiplayerSlot || 0);
   });
@@ -1529,8 +1574,12 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
       if (inGameControls) {
         if (data.state === 'MENU') {
           inGameControls.classList.add('hidden');
+          hideDesktopHud();
         } else if (data.state === 'SERVE' || data.state === 'RALLY' || data.state === 'POINT') {
           inGameControls.classList.remove('hidden');
+          if (data.state === 'RALLY') {
+            hideDesktopHud();
+          }
         }
       }
 
