@@ -138,6 +138,7 @@ const botAI = new BotAI(bot, shuttlecock, 'pro', {
   particles,
   sounds,
   onShot: (shotType, pos) => {
+    gameManager.registerRallyHit('bot', shotType);
     if (shotType === 'smash') {
       gameManager.shakeIntensity = 0.52;
       gameManager.notifyUI('💥 ĐỐI THỦ SMASH TÓE LỬA! 🔥', `Rally: ${gameManager.rallyCount} chạm`, 'smash');

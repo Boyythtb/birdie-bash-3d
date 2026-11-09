@@ -157,7 +157,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
          CHỈ HIỆN KHI ĐANG VÀO TRẬN - ẨN HOÀN TOÀN NGOÀI MENU CHỜ
          =================================================== -->
     <div id="in-game-controls" class="in-game-controls hidden">
-      <!-- CẦN ĐIỀU KHIỂN JOYSTICK BÊN TRÁI -->
+      <!-- CẦN ĐIỀU KHIỂN JOYSTICK BÊN TRÁI (CHO ĐIỆN THOẠI & CẢM ỨNG) -->
       <div id="joystick-zone" class="joystick-zone" title="Kéo để di chuyển">
         <div id="joystick-base" class="joystick-base">
           <div class="joystick-ring"></div>
@@ -165,23 +165,78 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
         </div>
       </div>
 
-      <!-- 4 NÚT HÀNH ĐỘNG BÊN PHẢI (CHUẨN FORM MÀN 2) -->
+      <!-- THANH ĐIỀU KHIỂN BÀN PHÍM TRÊN MÁY TÍNH (PC / DESKTOP CONTROLLER HUD) -->
+      <div id="desktop-controls-hud" class="desktop-controls-hud">
+        <div class="desktop-key-group">
+          <div class="keycap-cluster-wasd">
+            <span class="keycap key-w">W</span>
+            <div class="keycap-row">
+              <span class="keycap">A</span>
+              <span class="keycap">S</span>
+              <span class="keycap">D</span>
+            </div>
+          </div>
+          <span class="key-group-desc">Di Chuyển</span>
+        </div>
+
+        <div class="desktop-key-divider"></div>
+
+        <!-- 1 NÚT DUY NHẤT -->
+        <div class="desktop-key-group main-one-button" id="desktop-one-btn" role="button" tabindex="0" title="Bấm SPACE hoặc Click Chuột để Đánh Cầu Thông Minh">
+          <div class="keycap-hero-row">
+            <span class="keycap keycap-space">SPACE</span>
+            <span class="keycap-divider-or">HOẶC</span>
+            <span class="keycap keycap-mouse">🖱️ CLICK CHUỘT</span>
+          </div>
+          <div class="one-btn-text">
+            <span class="one-btn-badge">✨ 1 NÚT DUY NHẤT ✨</span>
+            <span class="one-btn-sub">Tự động Smash trên cao · Bỏ nhỏ sát lưới · Cứu bóng trượt sàn</span>
+          </div>
+        </div>
+
+        <div class="desktop-key-divider"></div>
+
+        <div class="desktop-key-group skill-keys">
+          <div class="skill-keys-row">
+            <div class="skill-key-item">
+              <span class="keycap">K</span>
+              <span class="skill-label">Smash</span>
+            </div>
+            <div class="skill-key-item">
+              <span class="keycap">L</span>
+              <span class="skill-label">Bỏ nhỏ</span>
+            </div>
+            <div class="skill-key-item">
+              <span class="keycap keycap-wide">Shift</span>
+              <span class="skill-label">Cứu bóng</span>
+            </div>
+          </div>
+          <span class="key-group-desc">Kỹ Năng Thủ Công</span>
+        </div>
+      </div>
+
+      <!-- 4 NÚT HÀNH ĐỘNG BÊN PHẢI (KÈM PHÍM TẮT ĐẦY ĐỦ TRÊN MÁY TÍNH & ĐIỆN THOẠI) -->
       <div class="action-buttons-pro">
         <button id="btn-dive" class="btn-game-act btn-dive" aria-label="Cứu cầu">
+          <span class="act-keycap">SHIFT / U</span>
           <span class="act-icon">💨</span>
           <span class="act-label">CỨU CẦU</span>
         </button>
         <button id="btn-smash" class="btn-game-act btn-smash" aria-label="Smash">
+          <span class="act-keycap">K</span>
           <span class="act-icon">💥</span>
           <span class="act-label">SMASH</span>
         </button>
         <button id="btn-drop" class="btn-game-act btn-drop" aria-label="Bỏ nhỏ">
+          <span class="act-keycap">L</span>
           <span class="act-icon">🪶</span>
           <span class="act-label">BỎ NHỎ</span>
         </button>
-        <button id="btn-hit" class="btn-game-act btn-hit" aria-label="Đánh cầu">
+        <button id="btn-hit" class="btn-game-act btn-hit highlight-hit" aria-label="1 Chạm Thông Minh">
+          <span class="act-keycap main-keycap">SPACE / Click</span>
           <span class="act-icon">🏸</span>
-          <span class="act-label">ĐÁNH CẦU</span>
+          <span class="act-label">1 CHẠM</span>
+          <span class="act-subhint">THÔNG MINH</span>
         </button>
       </div>
     </div>
@@ -473,36 +528,43 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     <div id="modal-how-to-play" class="modal-overlay hidden">
       <div class="bb-modal-box">
         <div class="bb-modal-header">
-          <h3>HƯỚNG DẪN CÁCH CHƠI</h3>
+          <h3>🏸 HƯỚNG DẪN CÁCH CHƠI ĐẲNG CẤP</h3>
           <button id="btn-close-how" class="btn-close-x">✕</button>
         </div>
         <div class="how-to-list">
           <div class="how-item">
-            <span class="how-icon">📱</span>
+            <span class="how-icon">✨</span>
             <div>
-              <strong>Trên Điện Thoại:</strong>
-              <p>Chạm & vuốt ngón tay bất kỳ đâu trên màn hình để di chuyển. Chạm nhẹ (Tap) vào màn hình để đập cầu sang sân đối thủ!</p>
+              <strong>1. Cơ Chế "1 Nút Duy Nhất" (Contextual Hit):</strong>
+              <p>Bấm duy nhất <strong>phím SPACE</strong> (hoặc <strong>Click chuột</strong> trên máy tính, hoặc nút <strong>ĐÁNH CẦU</strong> trên điện thoại):</p>
+              <ul style="margin: 4px 0 0 16px; padding: 0; font-size: 11.5px; color: #475569; line-height: 1.5;">
+                <li>💥 <strong>Cầu trên cao:</strong> Tự động bật nhảy đập cầu (Jump Smash) cắm sàn cực mạnh!</li>
+                <li>🪶 <strong>Sát lưới & tầm thấp:</strong> Tự động chạm nhẹ vợt bỏ nhỏ (Drop shot) lỡ trớn đối thủ!</li>
+                <li>💨 <strong>Rơi xa tầm chân:</strong> Tự động lao người trượt sàn (Dive) cứu bóng ngoạn mục!</li>
+                <li>🏸 <strong>Vị trí thông thường:</strong> Tự động phông cầu bổng sâu an toàn qua lại!</li>
+              </ul>
+              <small style="color: #64748b; font-size: 10.5px;">(Nếu muốn ép chiêu thủ công: phím <strong>K</strong> = Smash, <strong>L</strong> = Bỏ nhỏ, <strong>Shift / U</strong> = Cứu cầu).</small>
             </div>
           </div>
           <div class="how-item">
-            <span class="how-icon">💻</span>
+            <span class="how-icon">🎯</span>
             <div>
-              <strong>Trên Máy Tính:</strong>
-              <p>Phím <strong>WASD</strong> hoặc <strong>Mũi tên</strong> để di chuyển đón cầu. Phím <strong>SPACE</strong> hoặc <strong>Click chuột</strong> để đánh cầu.</p>
+              <strong>2. Tự Động Tìm Khoảng Trống (Smart Auto-Aiming):</strong>
+              <p>Khi bạn không giữ phím hướng nào, AI tự động phân tích đối thủ: đối thủ lệch phải thì đánh chéo sang trái và ngược lại. Điểm ngắm luôn khóa an toàn trong sân, triệt tiêu 100% tình trạng cầu ra ngoài!</p>
             </div>
           </div>
           <div class="how-item">
-            <span class="how-icon">⚡</span>
+            <span class="how-icon">🧲</span>
             <div>
-              <strong>Hệ Thống Đánh Thông Minh:</strong>
-              <p>Game tự động bật nhảy SMASH khi cầu cao, BỎ NHỎ sát lưới khi đứng gần, hoặc NHOÀI NGƯỜI CỨU CẦU khi cầu ở xa.</p>
+              <strong>3. Nam Châm Hút Vị Trí (Magnetic Step Assist):</strong>
+              <p>Chỉ cần chạy về hướng gần quả cầu. Khi cầu vào tầm, nhân vật tự động trượt nhẹ 1 bước thuận chân vào sát cầu. Không bao giờ lo chém gió hụt vì lệch vài cm!</p>
             </div>
           </div>
           <div class="how-item">
-            <span class="how-icon">⭕</span>
+            <span class="how-icon">🔥</span>
             <div>
-              <strong>Vòng Tròn Timing:</strong>
-              <p>Bấm đúng lúc vòng tròn đỏ co vừa khít quả cầu để đạt PERFECT SMASH uy lực x1.5!</p>
+              <strong>4. Khen Thưởng Chuỗi Rally (Rally Streaks):</strong>
+              <p>Cứ mỗi chuỗi 5 pha cầu giằng co (5x, 10x, 15x RALLY STREAK), khán giả sẽ bùng nổ tiếng reo hò kèm hiệu ứng danh hiệu rực lửa trên màn hình!</p>
             </div>
           </div>
         </div>
@@ -1406,12 +1468,11 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     btn.addEventListener('click', trigger);
   };
 
-  bindAction('btn-hit', () => gameManager.handlePlayerAction('hit'));
-
+  // 1 Nút Duy Nhất & Các phím chức năng
+  bindAction('btn-hit', () => gameManager.attemptSmartHit());
+  bindAction('desktop-one-btn', () => gameManager.attemptSmartHit());
   bindAction('btn-smash', () => gameManager.handlePlayerAction('smash'));
-
   bindAction('btn-drop', () => gameManager.handlePlayerAction('drop'));
-
   bindAction('btn-dive', () => gameManager.handlePlayerAction('dive'));
 
   // Chạm trực tiếp vào sân đấu để phát cầu hoặc đánh nhanh nếu không dùng nút
@@ -1491,10 +1552,23 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
         bannerNotice.className = `banner-notice ${data.type || ''}`;
         bannerNotice.classList.remove('hidden');
 
+        if (data.type === 'streak') {
+          const hudPill = document.getElementById('hud-pill');
+          const rallyText = document.getElementById('rally-text');
+          if (hudPill) {
+            hudPill.classList.add('rally-streak-fire');
+            setTimeout(() => hudPill.classList.remove('rally-streak-fire'), 2800);
+          }
+          if (rallyText) {
+            rallyText.classList.add('rally-text-fire');
+            setTimeout(() => rallyText.classList.remove('rally-text-fire'), 2800);
+          }
+        }
+
         if (bannerTimer) clearTimeout(bannerTimer);
         bannerTimer = setTimeout(() => {
           bannerNotice.classList.add('hidden');
-        }, 1500);
+        }, data.type === 'streak' ? 2400 : 1500);
       }
 
       if (data.state === 'GAMEOVER') {

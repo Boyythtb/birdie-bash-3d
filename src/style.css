@@ -1364,6 +1364,344 @@ html, body {
   text-transform: uppercase;
 }
 
+/* KEYCAP BADGES ON ACTION BUTTONS */
+.act-keycap {
+  font-size: 8px;
+  font-weight: 900;
+  background: rgba(15, 23, 42, 0.55);
+  color: #ffffff;
+  padding: 1px 5px;
+  border-radius: 5px;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.act-keycap.main-keycap {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #1e1b4b;
+  border-color: #fef08a;
+  font-weight: 950;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+}
+
+.btn-game-act.highlight-hit {
+  position: relative;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  border: 2.5px solid #38bdf8;
+  box-shadow: 0 8px 24px rgba(2, 132, 199, 0.4), 0 0 16px rgba(56, 189, 248, 0.5);
+  animation: hitBtnGlow 2.5s infinite alternate ease-in-out;
+}
+
+@keyframes hitBtnGlow {
+  0% { box-shadow: 0 8px 20px rgba(2, 132, 199, 0.4), 0 0 8px rgba(56, 189, 248, 0.3); }
+  100% { box-shadow: 0 10px 28px rgba(2, 132, 199, 0.6), 0 0 20px rgba(56, 189, 248, 0.8); }
+}
+
+.act-subhint {
+  font-size: 7px;
+  font-weight: 900;
+  color: #fef08a;
+  letter-spacing: 0.6px;
+  line-height: 1;
+}
+
+/* ===================================================
+   THANH ĐIỀU KHIỂN BÀN PHÍM TRÊN MÁY TÍNH (PC / DESKTOP CONTROLLER HUD)
+   =================================================== */
+.desktop-controls-hud {
+  position: fixed;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(20px);
+  border: 1.5px solid rgba(255, 255, 255, 0.22);
+  border-radius: 22px;
+  padding: 8px 18px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.32), 0 0 24px rgba(56, 189, 248, 0.12);
+  pointer-events: auto;
+  user-select: none;
+  z-index: 56;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.desktop-key-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.desktop-key-divider {
+  width: 1px;
+  height: 38px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.keycap-cluster-wasd {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.keycap-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.keycap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 24px;
+  padding: 0 6px;
+  background: linear-gradient(180deg, #ffffff 0%, #e2e8f0 100%);
+  color: #0f172a;
+  font-family: 'Outfit', sans-serif;
+  font-size: 11px;
+  font-weight: 900;
+  border-radius: 6px;
+  box-shadow: 0 2px 0 #94a3b8, 0 3px 6px rgba(0, 0, 0, 0.25);
+  border: 1px solid #ffffff;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.keycap:active {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 #94a3b8, 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.keycap-space {
+  min-width: 80px;
+  height: 28px;
+  background: linear-gradient(135deg, #fde047 0%, #f59e0b 100%);
+  color: #1e1b4b;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.8px;
+  box-shadow: 0 3px 0 #b45309, 0 4px 10px rgba(245, 158, 11, 0.4);
+}
+
+.keycap-mouse {
+  min-width: 90px;
+  height: 28px;
+  background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 900;
+  box-shadow: 0 3px 0 #0369a1, 0 4px 10px rgba(2, 132, 199, 0.4);
+}
+
+.keycap-wide {
+  min-width: 44px;
+}
+
+.keycap-divider-or {
+  font-size: 9px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.5px;
+}
+
+.key-group-desc {
+  font-size: 8.5px;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.main-one-button {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1.5px solid rgba(250, 204, 21, 0.4);
+  border-radius: 14px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.main-one-button:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: #facc15;
+  box-shadow: 0 0 16px rgba(250, 204, 21, 0.35);
+  transform: translateY(-1px);
+}
+
+.main-one-button:active {
+  transform: translateY(1px);
+}
+
+.keycap-hero-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.one-btn-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.one-btn-badge {
+  font-size: 10.5px;
+  font-weight: 900;
+  color: #facc15;
+  letter-spacing: 0.6px;
+}
+
+.one-btn-sub {
+  font-size: 8px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.skill-keys-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.skill-key-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.skill-label {
+  font-size: 8px;
+  font-weight: 700;
+  color: #cbd5e1;
+}
+
+/* POPUP THÔNG BÁO BANNER & KHEN THƯỞNG RALLY STREAKS */
+.banner-notice {
+  position: fixed;
+  top: 18%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 26px;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(20px);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-radius: 22px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  z-index: 90;
+  animation: bannerPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.banner-notice.hidden {
+  display: none !important;
+}
+
+.banner-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 24px;
+  font-weight: 900;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: 0.6px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.banner-sub {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fde047;
+  margin: 3px 0 0 0;
+  letter-spacing: 0.4px;
+}
+
+.banner-notice.smash {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(234, 88, 12, 0.95)) !important;
+  border-color: #fef08a !important;
+  box-shadow: 0 0 35px rgba(239, 68, 68, 0.65) !important;
+}
+
+.banner-notice.drop {
+  background: linear-gradient(135deg, rgba(147, 51, 234, 0.95), rgba(79, 70, 229, 0.95)) !important;
+  border-color: #e9d5ff !important;
+  box-shadow: 0 0 30px rgba(147, 51, 234, 0.5) !important;
+}
+
+.banner-notice.streak {
+  background: linear-gradient(135deg, #ef4444 0%, #f97316 48%, #eab308 100%) !important;
+  border: 3px solid #ffffff !important;
+  border-radius: 28px !important;
+  padding: 16px 36px !important;
+  box-shadow: 0 0 50px rgba(249, 115, 22, 0.85), 0 20px 40px rgba(0, 0, 0, 0.5) !important;
+  animation: streakPopAnim 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.banner-notice.streak .banner-title {
+  font-size: 32px !important;
+  color: #ffffff !important;
+  text-shadow: 0 3px 12px rgba(0, 0, 0, 0.6) !important;
+}
+
+.banner-notice.streak .banner-sub {
+  font-size: 14px !important;
+  color: #fef08a !important;
+  font-weight: 900 !important;
+}
+
+@keyframes bannerPop {
+  0% { transform: translate(-50%, -50%) scale(0.7); opacity: 0; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+@keyframes streakPopAnim {
+  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+  50% { transform: translate(-50%, -50%) scale(1.18); }
+  100% { transform: translate(-50%, -50%) scale(1.0); opacity: 1; }
+}
+
+/* HIỆU ỨNG LỬA CHÁY RALLY TRÊN HUD */
+.rally-streak-fire {
+  box-shadow: 0 0 26px rgba(239, 68, 68, 0.85), 0 0 45px rgba(249, 115, 22, 0.6) !important;
+  border-color: #ef4444 !important;
+  animation: fireGlowPulse 0.5s infinite alternate ease-in-out !important;
+}
+
+.rally-text-fire {
+  color: #ef4444 !important;
+  font-weight: 950 !important;
+  text-shadow: 0 0 10px rgba(239, 68, 68, 0.8) !important;
+  animation: fireTextBounce 0.4s infinite alternate !important;
+}
+
+@keyframes fireGlowPulse {
+  0% { transform: scale(1.0); }
+  100% { transform: scale(1.04); }
+}
+
+@keyframes fireTextBounce {
+  0% { transform: scale(1.0); }
+  100% { transform: scale(1.15); }
+}
+
+/* ẨN DESKTOP HUD TRÊN MÀN HÌNH NHỎ / ĐIỆN THOẠI */
+@media (max-width: 720px) {
+  .desktop-controls-hud {
+    display: none !important;
+  }
+}
+
 
 /* ===================================================
    GIAO DIỆN ĐẤU MẠNG ONLINE (CHUẨN APPLE AESTHETIC - CÂN ĐỐI 100%)

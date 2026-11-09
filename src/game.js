@@ -175,7 +175,7 @@ export class GameManager {
           shotType: data.shotType
         });
 
-        this.rallyCount++;
+        this.registerRallyHit('bot', data.shotType);
         this.notifyUI(data.timing || 'ĐỐI THỦ ĐÁNH!', `Rally: ${this.rallyCount}`, data.shotType === 'smash' ? 'smash' : 'hit');
       }
     });
@@ -366,12 +366,67 @@ export class GameManager {
     const pPos = this.player.group.position;
     const distXZ = new THREE.Vector2(pPos.x - s.position.x, pPos.z - s.position.z).length();
     const height = s.position.y;
-    const maxReach = actionType === 'dive' ? 3.85 : (actionType === 'smash' ? 2.65 : 2.35);
-    return distXZ <= maxReach && height >= 0.05 && height <= 4.5 && s.position.z > 0.05;
+    // Bán kính tiếp xúc vợt tối ưu kèm Nam châm hút vị trí
+    const maxReach = actionType === 'dive' ? 4.2 : (actionType === 'smash' ? 3.0 : 2.65);
+    return distXZ <= maxReach && height >= 0.05 && height <= 4.8 && s.position.z > 0.05;
+  }
+
+  // 1. CƠ CHẾ "1 NÚT DUY NHẤT" (Contextual One-Button Hit)
+  // Tự động phân tích tình huống quả cầu và người chơi để kích hoạt đòn đánh tối ưu nhất:
+  // 💥 Cầu ở trên cao -> Jump Smash cắm sàn cực mạnh!
+  // 🪶 Sát lưới & tầm thấp -> Bỏ nhỏ (Drop shot) lỡ trớn đối thủ!
+  // 💨 Rơi xa chân hoặc sát đất -> Lao người trượt sàn (Dive) cứu bóng ngoạn mục!
+  // 🏸 Vị trí thông thường -> Phông cầu bổng sâu an toàn qua lại!
+  resolveContextualShotType() {
+    const s = this.shuttlecock;
+    const pPos = this.player.group.position;
+    const distXZ = Math.hypot(pPos.x - s.position.x, pPos.z - s.position.z);
+    const height = s.position.y;
+    const sZ = s.position.z;
+    const pZ = pPos.z;
+
+    // 💥 1. Khi quả cầu đang ở trên cao: Tự động Bật nhảy đập cầu (Jump Smash) cắm sàn cực mạnh!
+    if (height >= 2.15 && distXZ <= 3.2) {
+      return 'smash';
+    }
+
+    // 🪶 2. Khi bạn đang đứng sát lưới và cầu ở tầm thấp: Tự động chạm nhẹ vợt bỏ nhỏ (Drop shot)!
+    if ((pZ <= 2.6 || sZ <= 2.3) && height < 2.1 && height >= 0.55) {
+      return 'drop';
+    }
+
+    // 💨 3. Khi quả cầu rơi ở xa tầm chân hoặc sát đất: Tự động lao người trượt sàn (Dive) cứu bóng!
+    if ((distXZ >= 2.15 && distXZ <= 4.2) || (height <= 0.9 && sZ > 0.2)) {
+      return 'dive';
+    }
+
+    // 🏸 4. Ở các vị trí thông thường: Tự động phông cầu bổng sâu an toàn qua lại!
+    return 'hit';
   }
 
   attemptSmartHit() {
-    this.handlePlayerAction('hit');
+    if (this.state === 'SERVE') {
+      if (!this.isMultiplayer && this.currentServer === 'player') {
+        this.playerServe();
+      } else if (this.isMultiplayer && ((this.multiplayerSlot === 0 && this.currentServer === 'player') || (this.multiplayerSlot === 1 && this.currentServer === 'bot'))) {
+        this.playerServe();
+      }
+      return;
+    }
+
+    if (this.state !== 'RALLY') return;
+
+    // 1 Nút Duy Nhất: Xác định chiêu thức tối ưu theo ngữ cảnh
+    const smartType = this.resolveContextualShotType();
+    const hitSuccess = this.executePlayerShot(smartType);
+
+    if (!hitSuccess) {
+      // Lưu vào bộ đệm để tự động tung đòn ngay khi cầu vào tầm
+      this.bufferedAction = {
+        type: 'smart',
+        time: Date.now()
+      };
+    }
   }
 
   attemptPlayerDive() {
@@ -380,6 +435,42 @@ export class GameManager {
 
   attemptPlayerHit(type) {
     this.handlePlayerAction(type);
+  }
+
+  // 4. KHEN THƯỞNG CHUỖI RALLY (Rally Streaks)
+  // Quản lý nhịp giằng co rally và khen thưởng mỗi chuỗi 5 pha liên tiếp
+  registerRallyHit(hitter = 'player', shotType = 'hit') {
+    this.rallyCount++;
+    if (this.rallyCount > this.maxRally) {
+      this.maxRally = this.rallyCount;
+    }
+
+    // Cứ mỗi chuỗi 5 pha cầu giằng co liên tiếp (5x, 10x, 15x, 20x RALLY STREAK):
+    // Khán giả bùng nổ tiếng reo hò kèm hiệu ứng danh hiệu rực lửa trên màn hình!
+    if (this.rallyCount > 0 && this.rallyCount % 5 === 0) {
+      this.triggerRallyStreak(this.rallyCount);
+    }
+  }
+
+  triggerRallyStreak(count) {
+    if (sounds && sounds.playCheer) sounds.playCheer();
+    if (this.court && this.court.cheer) this.court.cheer(2.5);
+    this.shakeIntensity = Math.min(0.55, 0.25 + count * 0.02);
+
+    let title = `🔥 ${count}x RALLY STREAK! 🔥`;
+    let subtitle = 'GIẰNG CO BỐC LỬA · KHÁN GIẢ HÒ REO!';
+    if (count === 10) {
+      title = `⚡ 10x SUPER RALLY! ⚡`;
+      subtitle = 'ĐỈNH CAO PHẢN XẠ · TRANH TÀI NGHẸT THỞ!';
+    } else if (count === 15) {
+      title = `👑 15x GODLIKE RALLY! 👑`;
+      subtitle = 'ĐẲNG CẤP THẦN THÁNH · ĐÔI CÔNG HUYỀN THOẠI!';
+    } else if (count >= 20) {
+      title = `🏆 ${count}x UNSTOPPABLE! 🏆`;
+      subtitle = 'BẤT KHẢ CHIẾN BẠI · KỶ LỤC THẾ GIỚI!';
+    }
+
+    this.notifyUI(title, subtitle, 'streak');
   }
 
   calculateTrajectory(startPos, targetPos, shotType, speedMult = 1.0) {
@@ -426,7 +517,21 @@ export class GameManager {
     if (!this.canHitShuttle(actionType)) return false;
 
     const pPos = this.player.group.position;
-    this.rallyCount++;
+    this.registerRallyHit('player', actionType);
+
+    // 3. NAM CHÂM HÚT VỊ TRÍ (Magnetic Step Assist)
+    // Bạn chỉ cần chạy về hướng gần quả cầu. Khi quả cầu rơi tới tầm đánh,
+    // nhân vật sẽ tự động trượt nhẹ 1 bước thuận chân vào sát quả cầu:
+    // Triệt tiêu 100% tình trạng vung vợt chém gió hụt vì lệch vài cm!
+    if (actionType !== 'dive') {
+      const idealOffsetX = (s.position.x > pPos.x) ? -0.32 : 0.32;
+      const idealOffsetZ = (actionType === 'smash') ? 0.40 : 0.22;
+      const stepTargetX = THREE.MathUtils.clamp(s.position.x + idealOffsetX, -2.15, 2.15);
+      const stepTargetZ = THREE.MathUtils.clamp(s.position.z + idealOffsetZ, 1.15, 5.75);
+
+      pPos.x = THREE.MathUtils.lerp(pPos.x, stepTargetX, 0.65);
+      pPos.z = THREE.MathUtils.lerp(pPos.z, stepTargetZ, 0.65);
+    }
 
     // 1. CỨU CẦU (Dive)
     if (actionType === 'dive') {
@@ -772,9 +877,10 @@ export class GameManager {
                      distPlayerToBall > 1.85; // Không cướp cầu khi người chơi đang ngay sát đó
 
     if (canTmHit) {
-      this.rallyCount++;
       const height = s.position.y;
       const startPos = s.position.clone();
+      const tmShotType = height > 1.85 ? 'smash' : (tmPos.z < 3.0 && height < 1.6 ? 'drop' : 'clear');
+      this.registerRallyHit('player', tmShotType);
 
       if (height > 1.85) {
         // SMASH TÓE LỬA DŨNG MÃNH
@@ -864,10 +970,11 @@ export class GameManager {
                            s.position.y < 3.8;
 
       if (canHitterHit) {
-        this.rallyCount++;
         const height = s.position.y;
         const startPos = s.position.clone();
         const rand = Math.random();
+        const botShotType = (height > 1.85 && rand < 0.65) ? 'smash' : ((hitter.group.position.z > -2.8 && height < 1.6 && rand < 0.38) ? 'drop' : 'clear');
+        this.registerRallyHit('bot', botShotType);
 
         if (height > 1.85 && rand < 0.65) {
           // BOT SMASH TÓE LỬA
@@ -963,6 +1070,33 @@ export class GameManager {
       if (this.shuttlecock.isAirborne && this.shuttlecock.shotType === 'smash' && this.particles.emitSmashTrail) {
         this.particles.emitSmashTrail(this.shuttlecock.position);
       }
+
+      // Xử lý bộ đệm thao tác (Buffered Action) để tự động tung đòn ngay khi cầu vào tầm
+      if (this.bufferedAction) {
+        if (Date.now() - this.bufferedAction.time < 380) {
+          const actionType = (this.bufferedAction.type === 'smart') ? this.resolveContextualShotType() : this.bufferedAction.type;
+          if (this.canHitShuttle(actionType)) {
+            this.executePlayerShot(actionType);
+            this.bufferedAction = null;
+          }
+        } else {
+          this.bufferedAction = null;
+        }
+      }
+
+      // 3. NAM CHÂM HÚT VỊ TRÍ (Magnetic Step Assist)
+      // Khi cầu bay về phía sân người chơi, hỗ trợ trượt nhẹ thuận chân vào quỹ đạo cầu
+      if (this.shuttlecock.isAirborne && this.shuttlecock.velocity.z > 0 && this.shuttlecock.position.z > 0.4) {
+        const pPos = this.player.group.position;
+        const sPos = this.shuttlecock.position;
+        const distToBall = Math.hypot(pPos.x - sPos.x, pPos.z - sPos.z);
+        if (distToBall < 2.0 && sPos.y < 3.0) {
+          const pullTargetX = sPos.x + (sPos.x > pPos.x ? -0.32 : 0.32);
+          const pullTargetZ = sPos.z + 0.28;
+          pPos.x = THREE.MathUtils.lerp(pPos.x, THREE.MathUtils.clamp(pullTargetX, -2.15, 2.15), 0.12 * dt * 60);
+          pPos.z = THREE.MathUtils.lerp(pPos.z, THREE.MathUtils.clamp(pullTargetZ, 1.15, 5.75), 0.12 * dt * 60);
+        }
+      }
     }
 
     // Di chuyển người chơi theo phím hoặc Joystick
@@ -990,11 +1124,42 @@ export class GameManager {
       network.sendMove(this.player.group.position.x, this.player.group.position.z, this.player.state);
     }
 
-    // Cập nhật Hồng tâm ngắm (Aim Reticle)
+    // 2. TỰ ĐỘNG TÌM KHOẢNG TRỐNG (Smart Auto-Aiming):
+    // Nếu người chơi chủ động giữ phím A/D hoặc Joystick ngang -> Điều khiển hướng ngắm thủ công
     if (moveDir.x !== 0) {
       this.aimTarget.x += moveDir.x * 4.5 * dt;
-      this.aimTarget.x = THREE.MathUtils.clamp(this.aimTarget.x, -2.1, 2.1);
+    } else if (this.state === 'RALLY' || this.state === 'SERVE') {
+      // Khi không giữ phím hướng nào, AI tự động phân tích vị trí đối thủ:
+      // nếu đối thủ lệch bên phải, quả cầu tự động vung chéo sang góc trống bên trái và ngược lại!
+      let openSpaceX = 0;
+      if (!this.isDoubles) {
+        const botX = this.bot.group.position.x;
+        if (botX > 0.1) {
+          openSpaceX = -1.75;
+        } else if (botX < -0.1) {
+          openSpaceX = 1.75;
+        } else {
+          openSpaceX = (this.player.group.position.x > 0) ? -1.75 : 1.75;
+        }
+      } else {
+        const b1X = this.bot.group.position.x;
+        const b2X = this.bot2 ? this.bot2.group.position.x : 0;
+        const avgX = (b1X + b2X) / 2;
+        if (avgX > 0.15) {
+          openSpaceX = -1.75;
+        } else if (avgX < -0.15) {
+          openSpaceX = 1.75;
+        } else {
+          openSpaceX = (Math.abs(b1X - b2X) > 1.8) ? 0 : ((this.player.group.position.x > 0) ? -1.75 : 1.75);
+        }
+      }
+
+      // Nội suy mượt mà điểm ngắm vào góc trống đối thủ
+      this.aimTarget.x = THREE.MathUtils.lerp(this.aimTarget.x, openSpaceX, Math.min(1.0, 4.0 * dt));
     }
+
+    // ĐIỂM NGẮM LUÔN ĐƯỢC KHÓA AN TOÀN TRONG SÂN (Triệt tiêu 100% tình trạng cầu bay ra ngoài)
+    this.aimTarget.x = THREE.MathUtils.clamp(this.aimTarget.x, -2.05, 2.05);
     this.aimReticle.position.copy(this.aimTarget);
     this.aimReticle.visible = (this.state === 'RALLY' || this.state === 'SERVE');
 
