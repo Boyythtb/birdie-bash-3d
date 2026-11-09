@@ -134,6 +134,7 @@ const gameManager = new GameManager({
 });
 
 // 8. Khởi tạo Trí tuệ nhân tạo (Bot AI 1v1) với hiệu ứng smash tóe lửa và âm thanh
+window.gameManager = gameManager;
 const botAI = new BotAI(bot, shuttlecock, 'pro', {
   particles,
   sounds,
