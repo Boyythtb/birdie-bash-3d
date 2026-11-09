@@ -11,16 +11,15 @@ import {
   serverTimestamp
 } from 'firebase/database';
 
-// Cấu hình Firebase đã xác thực của bạn (Project: game-gac-mai)
+// Cấu hình Firebase RIÊNG BIỆT cho Birdie Bash 3D (Project: birdie-bash-3d-2026)
 export const firebaseConfig = {
-  projectId: "game-gac-mai",
-  appId: "1:280548544010:web:b8075178f9b9581dca59f3",
-  databaseURL: "https://game-gac-mai-default-rtdb.asia-southeast1.firebasedatabase.app",
-  storageBucket: "game-gac-mai.firebasestorage.app",
-  apiKey: "AIzaSyDe41rkWkGH-EuUl2qQgPUEI5ccsOvjA_4",
-  authDomain: "game-gac-mai.firebaseapp.com",
-  messagingSenderId: "280548544010",
-  measurementId: "G-EFKKBTRQWD"
+  projectId: "birdie-bash-3d-2026",
+  appId: "1:962511515177:web:54bba507b47807d7b8f638",
+  databaseURL: "https://birdie-bash-3d-2026-default-rtdb.asia-southeast1.firebasedatabase.app",
+  storageBucket: "birdie-bash-3d-2026.firebasestorage.app",
+  apiKey: "AIzaSyBjRj4Z9vGA_phvyqfnGRB3_P5RNMx8EfQ",
+  authDomain: "birdie-bash-3d-2026.firebaseapp.com",
+  messagingSenderId: "962511515177"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -38,7 +37,7 @@ function generateRoomCode() {
   return code;
 }
 
-// BỘ ĐIỀU PHỐI REALTIME MULTIPLAYER HOÀN TOÀN SERVERLESS QUA FIREBASE
+// BỘ ĐIỀU PHỐI REALTIME MULTIPLAYER HOÀN TOÀN SERVERLESS QUA FIREBASE RIÊNG
 export class FirebaseMultiplayer {
   constructor() {
     this.currentRoomCode = null;
@@ -94,7 +93,7 @@ export class FirebaseMultiplayer {
 
     await set(this.roomRef, newRoom);
 
-    // Tự động xóa phòng nếu Host mất mạng
+    // Tự động xóa phòng nếu Host mất kết nối
     onDisconnect(this.roomRef).remove();
 
     this.listenToRoom();
@@ -108,7 +107,7 @@ export class FirebaseMultiplayer {
     const snapshot = await get(targetRef);
 
     if (!snapshot.exists()) {
-      throw new Error(`Phòng "${code}" không tồn tại!`);
+      throw new Error(`Phòng "${code}" không tồn tại hoặc đã đóng!`);
     }
 
     const roomData = snapshot.val();
@@ -119,7 +118,6 @@ export class FirebaseMultiplayer {
       throw new Error(`Phòng "${code}" đã đủ người!`);
     }
 
-    // Tìm slot trống kế tiếp
     let slotNum = 1;
     while (players[`slot_${slotNum}`]) {
       slotNum++;
@@ -167,7 +165,6 @@ export class FirebaseMultiplayer {
         }
       }
     }
-    // Không có phòng trống -> Tạo phòng mới
     return await this.createRoom(mode, playerName, avatar, color);
   }
 
@@ -291,7 +288,6 @@ export class FirebaseMultiplayer {
   leaveRoom() {
     if (this.currentRoomCode && this.mySlot !== null) {
       if (this.mySlot === 0) {
-        // Host rời -> Xóa phòng
         set(ref(db, `rooms/${this.currentRoomCode}`), null);
       } else {
         set(ref(db, `rooms/${this.currentRoomCode}/players/slot_${this.mySlot}`), null);
