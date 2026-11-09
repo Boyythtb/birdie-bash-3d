@@ -20,7 +20,11 @@ export class NetworkManager {
         room.id = room.code || room.id;
       }
       this.currentRoom = room;
-      this.yourSlot = data.yourSlot !== undefined ? data.yourSlot : this.yourSlot;
+      if (data.yourSlot !== undefined && data.yourSlot !== null) {
+        this.yourSlot = data.yourSlot;
+      } else if (firebaseNet.mySlot !== null && firebaseNet.mySlot !== undefined) {
+        this.yourSlot = firebaseNet.mySlot;
+      }
       this.emit('roomUpdated', room);
     });
 

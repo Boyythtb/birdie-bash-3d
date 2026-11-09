@@ -1078,6 +1078,9 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
   const btnHostStart = document.getElementById('btn-host-start');
 
   network.on('roomUpdated', (room) => {
+    // Nếu trận đấu đã bắt đầu hoặc đang chơi (PLAYING), KHÔNG bao giờ mở lại modal lobby
+    if (room && room.state === 'PLAYING') return;
+
     modalOnline.classList.remove('hidden');
     if (onlineViewLobby) onlineViewLobby.classList.add('hidden');
     if (onlineViewRoom) onlineViewRoom.classList.remove('hidden');
@@ -1102,6 +1105,9 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     let html = '';
     const myId = network.playerId || network.clientId;
     const yourSlot = playersList.findIndex((p) => p && p.id === myId);
+    if (yourSlot !== -1) {
+      network.yourSlot = yourSlot;
+    }
     const isHost = yourSlot === 0;
 
     playersList.forEach((p, idx) => {
@@ -1160,14 +1166,24 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     showDesktopHud(3000);
 
     const room = (data && data.room) ? data.room : data;
-    const slot = (data && data.yourSlot !== undefined && data.yourSlot !== null)
-      ? data.yourSlot
-      : ((network.yourSlot !== undefined && network.yourSlot !== null) ? network.yourSlot : 0);
-    const mode = (room && room.mode === '2v2') ? 'online-2v2' : 'online-1v1';
-
-    // Cập nhật tên và avatar chuẩn xác trên HUD
     const players = (room && room.players) ? (Array.isArray(room.players) ? room.players : Object.values(room.players)) : [];
-    const myPlayer = players.find(p => p && p.slot === slot) || players[slot];
+    const myId = network.playerId || network.clientId;
+
+    // TÌM SLOT CHÍNH XÁC 100% THEO ID CỦA NGƯỜI CHƠI (TRIỆT TIÊU LỖI CẢ 2 NICK ĐỀU LÀ SLOT 0)
+    const myPlayer = players.find(p => p && p.id === myId);
+    let slot = 0;
+    if (myPlayer && myPlayer.slot !== undefined) {
+      slot = Number(myPlayer.slot);
+    } else if (data && data.yourSlot !== undefined && data.yourSlot !== null) {
+      slot = Number(data.yourSlot);
+    } else if (network.yourSlot !== undefined && network.yourSlot !== null) {
+      slot = Number(network.yourSlot);
+    } else if (firebaseNet.mySlot !== undefined && firebaseNet.mySlot !== null) {
+      slot = Number(firebaseNet.mySlot);
+    }
+
+    network.yourSlot = slot;
+    const mode = (room && room.mode === '2v2') ? 'online-2v2' : 'online-1v1';
     const oppPlayer = players.find(p => p && p.slot !== slot) || players[slot === 0 ? 1 : 0];
 
     const hudPlayerName = document.getElementById('hud-player-name');
@@ -1192,6 +1208,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
       diffTag.innerText = (mode === 'online-2v2') ? 'ONLINE 2v2' : 'ONLINE 1v1';
     }
 
+    console.log(`[MULTIPLAYER MATCH START] Slot=${slot}, isHost=${slot === 0}, Mode=${mode}, Room=${room ? room.code : 'none'}`);
     gameManager.startGame('pro', mode, slot);
   });
 
