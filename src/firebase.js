@@ -7,6 +7,7 @@ import {
   update,
   onValue,
   off,
+  remove,
   onDisconnect,
   serverTimestamp
 } from 'firebase/database';
@@ -48,6 +49,9 @@ export class FirebaseMultiplayer {
     this.shuttleListener = null;
     this.moveListener = null;
     this.scoreListener = null;
+    this.matchStarted = false;
+    this.lastHitTs = 0;
+    this.lastScoreTs = 0;
   }
 
   on(event, cb) {
@@ -171,6 +175,10 @@ export class FirebaseMultiplayer {
   // 4. LẮNG NGHE THAY ĐỔI TRONG PHÒNG
   listenToRoom() {
     if (!this.roomRef) return;
+    this.cleanupListeners();
+    this.matchStarted = false;
+    this.lastHitTs = Date.now() - 500;
+    this.lastScoreTs = Date.now() - 500;
 
     this.roomListener = onValue(this.roomRef, (snapshot) => {
       if (!snapshot.exists()) {
@@ -196,10 +204,15 @@ export class FirebaseMultiplayer {
       });
 
       if (room.state === 'PLAYING') {
-        this.emit('matchStart', {
-          room,
-          yourSlot: this.mySlot
-        });
+        if (!this.matchStarted) {
+          this.matchStarted = true;
+          this.emit('matchStart', {
+            room,
+            yourSlot: this.mySlot
+          });
+        }
+      } else {
+        this.matchStarted = false;
       }
     });
 
@@ -219,23 +232,42 @@ export class FirebaseMultiplayer {
       }
     });
 
-    // Lắng nghe cú đánh quả cầu
+    // Lắng nghe cú đánh quả cầu (chỉ nhận cú đánh mới)
     this.shuttleListener = onValue(ref(db, `rooms/${this.currentRoomCode}/shuttle`), (snap) => {
       if (!snap.exists()) return;
       const hit = snap.val();
-      if (hit && hit.hitterSlot !== this.mySlot) {
+      if (hit && hit.hitterSlot !== this.mySlot && hit.ts && hit.ts > this.lastHitTs) {
+        this.lastHitTs = hit.ts;
         this.emit('remoteHit', hit);
       }
     });
 
-    // Lắng nghe điểm số
+    // Lắng nghe điểm số (chỉ nhận điểm số mới)
     this.scoreListener = onValue(ref(db, `rooms/${this.currentRoomCode}/score`), (snap) => {
       if (!snap.exists()) return;
       const score = snap.val();
-      if (score) {
+      if (score && score.ts && score.ts > this.lastScoreTs) {
+        this.lastScoreTs = score.ts;
         this.emit('remoteScore', score);
       }
     });
+  }
+
+  cleanupListeners() {
+    if (this.roomRef && this.roomListener) {
+      try { off(this.roomRef); } catch (e) {}
+      this.roomListener = null;
+    }
+    if (this.currentRoomCode) {
+      try {
+        off(ref(db, `rooms/${this.currentRoomCode}/players`));
+        off(ref(db, `rooms/${this.currentRoomCode}/shuttle`));
+        off(ref(db, `rooms/${this.currentRoomCode}/score`));
+      } catch (e) {}
+    }
+    this.moveListener = null;
+    this.shuttleListener = null;
+    this.scoreListener = null;
   }
 
   // 5. GỬI TỌA ĐỘ DI CHUYỂN
@@ -279,6 +311,10 @@ export class FirebaseMultiplayer {
   // 9. CHỦ PHÒNG BẮT ĐẦU TRẬN
   async startMatch() {
     if (!this.currentRoomCode) return;
+    try {
+      await remove(ref(db, `rooms/${this.currentRoomCode}/shuttle`));
+      await remove(ref(db, `rooms/${this.currentRoomCode}/score`));
+    } catch (e) {}
     await update(ref(db, `rooms/${this.currentRoomCode}`), {
       state: 'PLAYING'
     });
@@ -286,6 +322,7 @@ export class FirebaseMultiplayer {
 
   // 10. RỜI PHÒNG
   leaveRoom() {
+    this.matchStarted = false;
     if (this.currentRoomCode && this.mySlot !== null) {
       if (this.mySlot === 0) {
         set(ref(db, `rooms/${this.currentRoomCode}`), null);
@@ -293,9 +330,7 @@ export class FirebaseMultiplayer {
         set(ref(db, `rooms/${this.currentRoomCode}/players/slot_${this.mySlot}`), null);
       }
     }
-    if (this.roomRef) {
-      off(this.roomRef);
-    }
+    this.cleanupListeners();
     this.currentRoomCode = null;
     this.mySlot = null;
     this.roomRef = null;

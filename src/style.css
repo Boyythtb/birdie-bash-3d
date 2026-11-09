@@ -1731,6 +1731,113 @@ html, body {
   100% { transform: scale(1.15); }
 }
 
+/* BANNER CHỈ BÁO LƯỢT PHÁT CẦU (SERVE INDICATOR BAR - CỐ ĐỊNH, RÕ RÀNG 100%) */
+.serve-indicator-bar {
+  position: fixed;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 85;
+  pointer-events: none;
+  animation: serveFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.serve-indicator-bar.hidden {
+  display: none !important;
+}
+
+.serve-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 18px;
+  border-radius: 9999px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 13.5px;
+  font-weight: 700;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(14px);
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.serve-pill.my-turn {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.95), rgba(5, 150, 105, 0.95));
+  color: #ffffff;
+  border-color: #6ee7b7;
+  box-shadow: 0 0 24px rgba(16, 185, 129, 0.7), 0 8px 24px rgba(0, 0, 0, 0.35);
+  animation: servePulseGreen 1.6s infinite ease-in-out;
+}
+
+.serve-pill.opponent-turn {
+  background: linear-gradient(135deg, rgba(71, 85, 105, 0.92), rgba(51, 65, 85, 0.92));
+  color: #f1f5f9;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.serve-pill kbd {
+  display: inline-block;
+  padding: 2px 7px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 900;
+  background: #ffffff;
+  color: #0f172a;
+  border-radius: 6px;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.25);
+  margin: 0 2px;
+}
+
+.serve-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.serve-dot.green {
+  background: #a7f3d0;
+  box-shadow: 0 0 10px #34d399;
+}
+
+.serve-dot.orange {
+  background: #fcd34d;
+  box-shadow: 0 0 10px #f59e0b;
+  animation: blinkDot 0.9s infinite alternate;
+}
+
+@keyframes servePulseGreen {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 16px rgba(16, 185, 129, 0.5); }
+  50% { transform: scale(1.03); box-shadow: 0 0 28px rgba(16, 185, 129, 0.85); }
+}
+
+@keyframes blinkDot {
+  0% { opacity: 0.25; }
+  100% { opacity: 1; }
+}
+
+@keyframes serveFadeIn {
+  from { opacity: 0; transform: translate(-50%, -10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* Nút phát cầu pulsing highlight */
+.btn-hit.highlight-serve {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  border-color: #a7f3d0 !important;
+  box-shadow: 0 0 24px rgba(16, 185, 129, 0.8), 0 8px 20px rgba(0, 0, 0, 0.3) !important;
+  animation: serveButtonPulse 1.4s infinite ease-in-out !important;
+}
+
+@keyframes serveButtonPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+
 /* ẨN DESKTOP HUD TRÊN MÀN HÌNH NHỎ / ĐIỆN THOẠI */
 @media (max-width: 720px) {
   .desktop-controls-hud {

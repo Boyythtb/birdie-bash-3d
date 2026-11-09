@@ -30,9 +30,15 @@ export class NetworkManager {
         room.id = room.code || room.id;
       }
       this.currentRoom = room;
-      this.yourSlot = data.yourSlot !== undefined ? data.yourSlot : this.yourSlot;
-      this.emit('matchStart', room);
-      this.emit('gameStart', room);
+      this.yourSlot = (data.yourSlot !== undefined && data.yourSlot !== null) ? data.yourSlot : firebaseNet.mySlot;
+      this.emit('matchStart', {
+        room,
+        yourSlot: this.yourSlot
+      });
+      this.emit('gameStart', {
+        room,
+        yourSlot: this.yourSlot
+      });
     });
 
     firebaseNet.on('remoteMove', (data) => {
@@ -94,7 +100,9 @@ export class NetworkManager {
 
   async quickMatch(mode, playerName, avatar, color) {
     try {
-      return await firebaseNet.quickMatch(mode, playerName, avatar, color);
+      const code = await firebaseNet.quickMatch(mode, playerName, avatar, color);
+      this.yourSlot = firebaseNet.mySlot;
+      return code;
     } catch (err) {
       this.emit('error', err.message || 'Lỗi ghép trận!');
     }

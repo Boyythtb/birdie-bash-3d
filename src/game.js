@@ -116,6 +116,8 @@ export class GameManager {
       if (this.state === 'SERVE' && (e.code === 'Space' || e.code === 'KeyJ')) {
         if (this.canPlayerServe()) {
           this.playerServe();
+        } else {
+          this.notifyUI('CHỜ ĐỐI THỦ PHÁT CẦU! ⏳', 'Chưa đến lượt của bạn, hãy đứng vị trí đón cầu!', 'warning');
         }
       } else if (this.state === 'RALLY') {
         if (e.code === 'Space' || e.code === 'KeyJ') {
@@ -141,6 +143,8 @@ export class GameManager {
       if (this.state === 'SERVE') {
         if (this.canPlayerServe()) {
           this.playerServe();
+        } else {
+          this.notifyUI('CHỜ ĐỐI THỦ PHÁT CẦU! ⏳', 'Chưa đến lượt của bạn, hãy đứng vị trí đón cầu!', 'warning');
         }
       } else if (this.state === 'RALLY') {
         this.attemptSmartHit();
@@ -421,6 +425,8 @@ export class GameManager {
     if (this.state === 'SERVE') {
       if (this.canPlayerServe()) {
         this.playerServe();
+      } else {
+        this.notifyUI('CHỜ ĐỐI THỦ PHÁT CẦU! ⏳', 'Chưa đến lượt của bạn, hãy đứng vị trí đón cầu!', 'warning');
       }
       return;
     }
@@ -489,6 +495,8 @@ export class GameManager {
     if (this.state === 'SERVE') {
       if (this.canPlayerServe()) {
         this.playerServe();
+      } else {
+        this.notifyUI('CHỜ ĐỐI THỦ PHÁT CẦU! ⏳', 'Chưa đến lượt của bạn, hãy đứng vị trí đón cầu!', 'warning');
       }
       return;
     }
@@ -985,6 +993,10 @@ export class GameManager {
         botScore: this.botScore,
         rallyCount: this.rallyCount,
         currentServer: this.currentServer,
+        canPlayerServe: this.canPlayerServe(),
+        isMultiplayer: this.isMultiplayer,
+        serverSlot: this.serverSlot,
+        multiplayerSlot: this.multiplayerSlot,
         state: this.state
       });
     }

@@ -137,6 +137,9 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
       <button id="btn-toggle-hints" class="hud-ctrl-btn hud-btn-hints" title="Hướng dẫn phím tắt">⌨️ Phím</button>
     </div>
 
+    <!-- BANNER CHỈ BÁO LƯỢT PHÁT CẦU CỐ ĐỊNH RÕ RÀNG (HIỂN THỊ SUỐT TRẠNG THÁI SERVE) -->
+    <div id="serve-indicator-bar" class="serve-indicator-bar hidden"></div>
+
     <!-- POPUP THÔNG BÁO TIMING & GHI ĐIỂM -->
     <div id="banner-notice" class="banner-notice hidden">
       <h2 id="banner-title" class="banner-title">HOÀN HẢO! 🔥</h2>
@@ -1148,15 +1151,47 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     }
   });
 
-  network.on('matchStart', (room) => {
+  network.on('matchStart', (data) => {
     modalOnline.classList.add('hidden');
     document.getElementById('main-menu').classList.add('hidden');
     document.getElementById('hud').classList.remove('hidden');
     const inGameControls = document.getElementById('in-game-controls');
     if (inGameControls) inGameControls.classList.remove('hidden');
     showDesktopHud(3000);
+
+    const room = (data && data.room) ? data.room : data;
+    const slot = (data && data.yourSlot !== undefined && data.yourSlot !== null)
+      ? data.yourSlot
+      : ((network.yourSlot !== undefined && network.yourSlot !== null) ? network.yourSlot : 0);
     const mode = (room && room.mode === '2v2') ? 'online-2v2' : 'online-1v1';
-    const slot = (network.yourSlot !== undefined && network.yourSlot !== null) ? network.yourSlot : 0;
+
+    // Cập nhật tên và avatar chuẩn xác trên HUD
+    const players = (room && room.players) ? (Array.isArray(room.players) ? room.players : Object.values(room.players)) : [];
+    const myPlayer = players.find(p => p && p.slot === slot) || players[slot];
+    const oppPlayer = players.find(p => p && p.slot !== slot) || players[slot === 0 ? 1 : 0];
+
+    const hudPlayerName = document.getElementById('hud-player-name');
+    const hudAvatar = document.getElementById('hud-avatar');
+    const hudBotName = document.getElementById('hud-bot-name');
+    const hudBotAvatar = document.getElementById('hud-bot-avatar');
+    const diffTag = document.getElementById('diff-tag');
+
+    if (hudPlayerName && myPlayer && myPlayer.name) {
+      hudPlayerName.innerText = myPlayer.name.toUpperCase();
+    }
+    if (hudAvatar && myPlayer && myPlayer.avatar) {
+      hudAvatar.innerText = myPlayer.avatar;
+    }
+    if (hudBotName && oppPlayer && oppPlayer.name) {
+      hudBotName.innerText = oppPlayer.name.toUpperCase();
+    }
+    if (hudBotAvatar && oppPlayer && oppPlayer.avatar) {
+      hudBotAvatar.innerText = oppPlayer.avatar;
+    }
+    if (diffTag) {
+      diffTag.innerText = (mode === 'online-2v2') ? 'ONLINE 2v2' : 'ONLINE 1v1';
+    }
+
     gameManager.startGame('pro', mode, slot);
   });
 
@@ -1414,6 +1449,14 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
       document.getElementById('main-menu').classList.remove('hidden');
       const inGameControls = document.getElementById('in-game-controls');
       if (inGameControls) inGameControls.classList.add('hidden');
+      const serveBar = document.getElementById('serve-indicator-bar');
+      if (serveBar) serveBar.classList.add('hidden');
+      const hudBotName = document.getElementById('hud-bot-name');
+      if (hudBotName) hudBotName.innerText = 'MÁY (BOT)';
+      const hudBotAvatar = document.getElementById('hud-bot-avatar');
+      if (hudBotAvatar) hudBotAvatar.innerText = '🪻';
+      const diffTag = document.getElementById('diff-tag');
+      if (diffTag) diffTag.innerText = 'PRO';
       hideDesktopHud();
       gameManager.returnToMenu();
       showGameToast('Đã quay về sảnh chính', 'info');
@@ -1437,6 +1480,14 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     document.getElementById('main-menu').classList.remove('hidden');
     const inGameControls = document.getElementById('in-game-controls');
     if (inGameControls) inGameControls.classList.add('hidden');
+    const serveBar = document.getElementById('serve-indicator-bar');
+    if (serveBar) serveBar.classList.add('hidden');
+    const hudBotName = document.getElementById('hud-bot-name');
+    if (hudBotName) hudBotName.innerText = 'MÁY (BOT)';
+    const hudBotAvatar = document.getElementById('hud-bot-avatar');
+    if (hudBotAvatar) hudBotAvatar.innerText = '🪻';
+    const diffTag = document.getElementById('diff-tag');
+    if (diffTag) diffTag.innerText = 'PRO';
     hideDesktopHud();
     gameManager.returnToMenu();
   });
@@ -1563,8 +1614,12 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     if (gameManager.state === 'MENU' || e.target.closest('#main-menu') || e.target.closest('.modal-overlay') || e.target.closest('#in-game-controls') || e.target.closest('.hud-top-bar')) {
       return;
     }
-    if (gameManager.state === 'SERVE' && gameManager.currentServer === 'player') {
-      gameManager.playerServe();
+    if (gameManager.state === 'SERVE') {
+      if (gameManager.canPlayerServe()) {
+        gameManager.playerServe();
+      } else {
+        gameManager.notifyUI('CHỜ ĐỐI THỦ PHÁT CẦU! ⏳', 'Chưa đến lượt của bạn, hãy đứng vị trí đón cầu!', 'warning');
+      }
     } else if (gameManager.state === 'RALLY') {
       gameManager.attemptSmartHit();
     }
@@ -1623,13 +1678,68 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
 
       const sP1 = document.getElementById('hud-serve-p1');
       const sBot = document.getElementById('hud-serve-bot');
+      const isMyTurn = (data.canPlayerServe !== undefined) ? data.canPlayerServe : (data.currentServer === 'player');
+
       if (sP1 && sBot) {
-        if (data.currentServer === 'player') {
-          sP1.classList.remove('hidden');
-          sBot.classList.add('hidden');
+        if (data.state === 'SERVE') {
+          if (isMyTurn) {
+            sP1.classList.remove('hidden');
+            sBot.classList.add('hidden');
+          } else {
+            sP1.classList.add('hidden');
+            sBot.classList.remove('hidden');
+          }
         } else {
           sP1.classList.add('hidden');
-          sBot.classList.remove('hidden');
+          sBot.classList.add('hidden');
+        }
+      }
+
+      // CẬP NHẬT THANH CHỈ BÁO LƯỢT PHÁT CẦU (SERVE INDICATOR) CỐ ĐỊNH 100%
+      const serveBar = document.getElementById('serve-indicator-bar');
+      const btnHit = document.getElementById('btn-hit');
+      if (serveBar) {
+        if (data.state === 'SERVE') {
+          serveBar.classList.remove('hidden');
+          if (isMyTurn) {
+            serveBar.innerHTML = `
+              <div class="serve-pill my-turn">
+                <span class="serve-dot green"></span>
+                <span>🏸 <strong>LƯỢT BẠN PHÁT CẦU</strong> · Bấm <kbd>SPACE</kbd> / Click Chuột hoặc nút <strong>[PHÁT CẦU]</strong></span>
+              </div>
+            `;
+            if (btnHit) {
+              btnHit.classList.add('highlight-serve');
+              const actLabel = btnHit.querySelector('.act-label');
+              const actSub = btnHit.querySelector('.act-subhint');
+              if (actLabel) actLabel.innerText = 'PHÁT CẦU';
+              if (actSub) actSub.innerText = 'CHÉO SÂN';
+            }
+          } else {
+            const oppName = document.getElementById('hud-bot-name')?.innerText || 'ĐỐI THỦ';
+            serveBar.innerHTML = `
+              <div class="serve-pill opponent-turn">
+                <span class="serve-dot orange"></span>
+                <span>⏳ <strong>${oppName} ĐANG PHÁT CẦU...</strong> · Chuẩn bị đón cầu!</span>
+              </div>
+            `;
+            if (btnHit) {
+              btnHit.classList.remove('highlight-serve');
+              const actLabel = btnHit.querySelector('.act-label');
+              const actSub = btnHit.querySelector('.act-subhint');
+              if (actLabel) actLabel.innerText = 'ĐÓN CẦU';
+              if (actSub) actSub.innerText = 'CHỜ ĐỐI THỦ';
+            }
+          }
+        } else {
+          serveBar.classList.add('hidden');
+          if (btnHit) {
+            btnHit.classList.remove('highlight-serve');
+            const actLabel = btnHit.querySelector('.act-label');
+            const actSub = btnHit.querySelector('.act-subhint');
+            if (actLabel) actLabel.innerText = '1 CHẠM';
+            if (actSub) actSub.innerText = 'THÔNG MINH';
+          }
         }
       }
 
