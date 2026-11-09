@@ -1,30 +1,40 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#f43f5e"/>
-      <stop offset="100%" stop-color="#7c3aed"/>
-    </linearGradient>
-    <linearGradient id="cork" x1="0" y1="0" x2="0" y2="100%">
-      <stop offset="0%" stop-color="#ffffff"/>
-      <stop offset="100%" stop-color="#e2e8f0"/>
+      <stop offset="0%" stop-color="#f472b6"/>
+      <stop offset="100%" stop-color="#fb7185"/>
     </linearGradient>
   </defs>
-  <rect width="100" height="100" rx="24" fill="url(#bg)"/>
-  <!-- Feathers Skirt -->
-  <polygon points="26,22 74,22 59,58 41,58" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
-  <!-- Feather ribs -->
-  <line x1="33" y1="22" x2="45" y2="58" stroke="#94a3b8" stroke-width="1.5"/>
-  <line x1="41" y1="22" x2="48" y2="58" stroke="#94a3b8" stroke-width="1.5"/>
-  <line x1="50" y1="22" x2="50" y2="58" stroke="#94a3b8" stroke-width="1.5"/>
-  <line x1="59" y1="22" x2="52" y2="58" stroke="#94a3b8" stroke-width="1.5"/>
-  <line x1="67" y1="22" x2="55" y2="58" stroke="#94a3b8" stroke-width="1.5"/>
-  <!-- Rib ties -->
-  <line x1="31" y1="36" x2="69" y2="36" stroke="#64748b" stroke-width="2"/>
-  <line x1="37" y1="48" x2="63" y2="48" stroke="#64748b" stroke-width="2"/>
-  <!-- Blue band -->
-  <rect x="40" y="56" width="20" height="7" rx="2" fill="#0284c7"/>
-  <!-- Cork dome -->
-  <path d="M 40,63 A 10,10 0 0 0 60,63 Z" fill="url(#cork)" stroke="#cbd5e1" stroke-width="1.5"/>
-  <!-- Cork glint -->
-  <circle cx="46" cy="67" r="2.5" fill="#ffffff"/>
+  <!-- Rounded Squircle Base -->
+  <rect width="100" height="100" rx="26" fill="url(#bg)"/>
+  
+  <!-- Chibi Bear Ears -->
+  <polygon points="24,42 33,16 48,36" fill="#fbbf24" stroke="#d97706" stroke-width="2"/>
+  <polygon points="28,38 34,22 43,35" fill="#fda4af"/>
+  <polygon points="76,42 67,16 52,36" fill="#fbbf24" stroke="#d97706" stroke-width="2"/>
+  <polygon points="72,38 66,22 57,35" fill="#fda4af"/>
+
+  <!-- Chibi Round Head -->
+  <ellipse cx="50" cy="55" rx="38" ry="34" fill="#fbbf24" stroke="#d97706" stroke-width="2.5"/>
+
+  <!-- White Headband with Red Stripe -->
+  <rect x="13" y="37" width="74" height="12" rx="5" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+  <rect x="15" y="41" width="70" height="4" fill="#ef4444"/>
+
+  <!-- Anime Sparkling Eyes -->
+  <circle cx="34" cy="57" r="6" fill="#0f172a"/>
+  <circle cx="36" cy="55" r="2.2" fill="#ffffff"/>
+  <circle cx="33" cy="59" r="1.2" fill="#ffffff"/>
+
+  <circle cx="66" cy="57" r="6" fill="#0f172a"/>
+  <circle cx="68" cy="55" r="2.2" fill="#ffffff"/>
+  <circle cx="65" cy="59" r="1.2" fill="#ffffff"/>
+
+  <!-- Cute Pink Blush -->
+  <ellipse cx="23" cy="63" rx="7" ry="4" fill="#fb7185"/>
+  <ellipse cx="77" cy="63" rx="7" ry="4" fill="#fb7185"/>
+
+  <!-- Tiny Cute Nose & Smile :3 -->
+  <ellipse cx="50" cy="62" rx="2.5" ry="2" fill="#0f172a"/>
+  <path d="M 44,66 Q 47,70 50,66 Q 53,70 56,66" fill="none" stroke="#0f172a" stroke-width="2" stroke-linecap="round"/>
 </svg>
