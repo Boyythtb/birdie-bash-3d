@@ -1156,7 +1156,8 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     if (inGameControls) inGameControls.classList.remove('hidden');
     showDesktopHud(3000);
     const mode = (room && room.mode === '2v2') ? 'online-2v2' : 'online-1v1';
-    gameManager.startGame('pro', mode, network.yourSlot || 0);
+    const slot = (network.yourSlot !== undefined && network.yourSlot !== null) ? network.yourSlot : 0;
+    gameManager.startGame('pro', mode, slot);
   });
 
   // Nút sao chép riêng mã phòng

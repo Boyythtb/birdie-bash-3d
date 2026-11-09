@@ -20,7 +20,8 @@ export class GameManager {
     this.gameMode = 'bot';
     this.isDoubles = false;
     this.isMultiplayer = false;
-    this.multiplayerSlot = 0; // 0: Player 1 (Sân dưới, Z>0), 1: Player 2 (Sân trên, Z<0)
+    this.multiplayerSlot = 0; // 0: Player 1 (Host), 1: Player 2 (Guest)
+    this.serverSlot = 0; // 0: Slot 0 phát cầu, 1: Slot 1 phát cầu
 
     // Tỷ số & Trạng thái trận đấu
     this.playerScore = 0;
@@ -98,18 +99,23 @@ export class GameManager {
     this.scene.add(this.aimReticle);
   }
 
+  // Kiểm tra lượt phát cầu hợp lệ (Đấu với Máy hoặc Đấu Online nhiều người)
+  canPlayerServe() {
+    if (this.state !== 'SERVE') return false;
+    if (this.isMultiplayer) {
+      return (this.multiplayerSlot === this.serverSlot);
+    }
+    return (this.currentServer === 'player');
+  }
+
   bindEvents() {
     window.addEventListener('keydown', (e) => {
       if (this.state === 'MENU') return;
       this.keys[e.code] = true;
 
       if (this.state === 'SERVE' && (e.code === 'Space' || e.code === 'KeyJ')) {
-        if (!this.isMultiplayer && this.currentServer === 'player') {
+        if (this.canPlayerServe()) {
           this.playerServe();
-        } else if (this.isMultiplayer) {
-          if ((this.multiplayerSlot === 0 && this.currentServer === 'player') || (this.multiplayerSlot === 1 && this.currentServer === 'bot')) {
-            this.playerServe();
-          }
         }
       } else if (this.state === 'RALLY') {
         if (e.code === 'Space' || e.code === 'KeyJ') {
@@ -133,12 +139,8 @@ export class GameManager {
         return;
       }
       if (this.state === 'SERVE') {
-        if (!this.isMultiplayer && this.currentServer === 'player') {
+        if (this.canPlayerServe()) {
           this.playerServe();
-        } else if (this.isMultiplayer) {
-          if ((this.multiplayerSlot === 0 && this.currentServer === 'player') || (this.multiplayerSlot === 1 && this.currentServer === 'bot')) {
-            this.playerServe();
-          }
         }
       } else if (this.state === 'RALLY') {
         this.attemptSmartHit();
@@ -147,53 +149,79 @@ export class GameManager {
   }
 
   setupMultiplayerListeners() {
-    // 1. Đối thủ di chuyển
+    // 1. Đối thủ di chuyển (Đảo đối xứng qua lưới để hiển thị ở sân đối diện Z < 0)
     network.on('remoteMove', (data) => {
       if (!this.isMultiplayer) return;
       if (data.slot !== this.multiplayerSlot) {
-        this.bot.group.position.x = data.x;
-        this.bot.group.position.z = data.z;
+        this.bot.group.position.x = -data.x;
+        this.bot.group.position.z = -data.z;
         if (data.state && this.bot.state !== data.state) {
           this.bot.playAction(data.state);
         }
       }
     });
 
-    // 2. Đối thủ đánh cầu
+    // 2. Đối thủ đánh cầu (tự động đảo góc nhìn qua lưới để quả cầu bay về phía sân người chơi)
     network.on('remoteHit', (data) => {
       if (!this.isMultiplayer) return;
-      if (data.slot !== this.multiplayerSlot) {
-        this.bot.playAction(data.shotType === 'smash' ? 'smash' : 'swing');
-        sounds.playHit(data.shotType === 'smash');
-        if (data.shotType === 'smash' && this.particles.emitFireSmash) {
-          this.particles.emitFireSmash(this.shuttlecock.position, 48);
-          this.shakeIntensity = 0.52;
-        } else {
-          this.particles.emitHit(this.shuttlecock.position, 16, false);
-        }
+      const hitterSlot = (data.hitterSlot !== undefined) ? data.hitterSlot : data.slot;
+      if (hitterSlot === this.multiplayerSlot) return; // Bỏ qua nếu là cú đánh của chính mình
 
-        const fromPos = new THREE.Vector3(data.from.x, data.from.y, data.from.z);
-        const vel = new THREE.Vector3(data.velocity.x, data.velocity.y, data.velocity.z);
+      // Giải phóng quả cầu sang trạng thái RALLY ngay lập tức (triệt tiêu lỗi cầu bị đóng băng lúc phát)
+      this.state = 'RALLY';
 
-        this.shuttlecock.hit({
-          from: fromPos,
-          velocity: vel,
-          hitter: 'bot',
-          shotType: data.shotType
-        });
-
-        this.registerRallyHit('bot', data.shotType);
-        this.notifyUI(data.timing || 'ĐỐI THỦ ĐÁNH!', `Rally: ${this.rallyCount}`, data.shotType === 'smash' ? 'smash' : 'hit');
+      this.bot.playAction(data.shotType === 'smash' ? 'smash' : 'swing');
+      sounds.playHit(data.shotType === 'smash');
+      if (data.shotType === 'smash' && this.particles.emitFireSmash) {
+        this.particles.emitFireSmash(this.shuttlecock.position, 48);
+        this.shakeIntensity = 0.52;
+      } else {
+        this.particles.emitHit(this.shuttlecock.position, 16, false);
       }
+
+      // Đảo tọa độ đối xứng qua tâm lưới (X' = -X, Z' = -Z, VX' = -VX, VZ' = -VZ)
+      const fromPos = new THREE.Vector3(-data.from.x, data.from.y, -data.from.z);
+      const vel = new THREE.Vector3(-data.velocity.x, data.velocity.y, -data.velocity.z);
+
+      this.shuttlecock.hit({
+        from: fromPos,
+        velocity: vel,
+        hitter: 'bot',
+        shotType: data.shotType
+      });
+
+      this.registerRallyHit('bot', data.shotType);
+      this.notifyUI(data.timing || 'ĐỐI THỦ ĐÁNH! 🏸', `Rally: ${this.rallyCount} chạm`, data.shotType === 'smash' ? 'smash' : 'hit');
     });
 
-    // 3. Đồng bộ điểm số
+    // 3. Đồng bộ điểm số chính xác theo Slot (Slot 0 là Team 1, Slot 1 là Team 2)
     network.on('remoteScore', (data) => {
       if (!this.isMultiplayer) return;
-      this.playerScore = data.team1Score;
-      this.botScore = data.team2Score;
+      this.state = 'POINT';
+      this.stateTimer = 0;
+      if (this.multiplayerSlot === 0) {
+        this.playerScore = (data.slot0Score !== undefined) ? data.slot0Score : (data.team1Score || 0);
+        this.botScore = (data.slot1Score !== undefined) ? data.slot1Score : (data.team2Score || 0);
+      } else {
+        this.playerScore = (data.slot1Score !== undefined) ? data.slot1Score : (data.team2Score || 0);
+        this.botScore = (data.slot0Score !== undefined) ? data.slot0Score : (data.team1Score || 0);
+      }
+
+      if (data.serverSlot !== undefined) {
+        this.serverSlot = data.serverSlot;
+      }
+      this.currentServer = (this.multiplayerSlot === this.serverSlot) ? 'player' : 'bot';
+
       sounds.playWhistle();
-      this.notifyUI('ĐIỂM SỐ ONLINE!', data.reason || '', 'info');
+      const isMyPoint = (data.scorerSlot === this.multiplayerSlot);
+      if (isMyPoint) {
+        sounds.playCheer();
+        this.player.playAction('celebrate');
+        this.notifyUI('BẠN GHI ĐIỂM! 🏸🎉', `${data.reason || ''} · Tỷ số: ${this.playerScore} - ${this.botScore}`, 'score-player');
+      } else {
+        this.bot.playAction('celebrate');
+        this.notifyUI('ĐỐI THỦ GHI ĐIỂM! 🤖', `${data.reason || ''} · Tỷ số: ${this.playerScore} - ${this.botScore}`, 'score-bot');
+      }
 
       const matchWinner = this.checkMatchWinner();
       if (matchWinner) {
@@ -203,6 +231,13 @@ export class GameManager {
             this.gameOver(matchWinner);
           }
         }, 500);
+      } else {
+        if (this.pointTimeout) clearTimeout(this.pointTimeout);
+        this.pointTimeout = setTimeout(() => {
+          if (this.state !== 'MENU') {
+            this.setupServe();
+          }
+        }, 2000);
       }
     });
   }
@@ -240,7 +275,9 @@ export class GameManager {
     this.botScore = 0;
     this.rallyCount = 0;
     this.maxRally = 0;
-    this.currentServer = 'player';
+    // Slot 0 (Chủ phòng) luôn phát cầu lượt đầu tiên (0-0)
+    this.serverSlot = 0;
+    this.currentServer = (this.multiplayerSlot === this.serverSlot) ? 'player' : 'bot';
 
     // Bật/tắt nhân vật đánh đôi
     if (this.teammate) this.teammate.group.visible = this.isDoubles;
@@ -260,19 +297,23 @@ export class GameManager {
     this.stateTimer = 0;
     this.rallyCount = 0;
 
+    // Xác định chính xác lượt phát cầu của bản thân (Người chơi hoặc Đấu Online)
+    const isMyTurnToServe = this.canPlayerServe();
+    this.currentServer = isMyTurnToServe ? 'player' : 'bot';
+
     // LUẬT CẦU LÔNG CHUẨN QUỐC TẾ BWF (EVEN / ODD SERVICE BOX):
     // Điểm số CHẴN (0, 2, 4...) -> Đứng ở ô giao cầu bên PHẢI
     // Điểm số LẺ (1, 3, 5...) -> Đứng ở ô giao cầu bên TRÁI
-    const serverScore = this.currentServer === 'player' ? this.playerScore : this.botScore;
+    const serverScore = isMyTurnToServe ? this.playerScore : this.botScore;
     const isEven = (serverScore % 2 === 0);
 
     let playerX, botX;
-    if (this.currentServer === 'player') {
-      playerX = isEven ? 1.15 : -1.15; // Player phát bên phải nếu chẵn, bên trái nếu lẻ
+    if (isMyTurnToServe) {
+      playerX = isEven ? 1.15 : -1.15; // Người chơi phát bên phải nếu chẵn, bên trái nếu lẻ
       botX = isEven ? -1.15 : 1.15;    // Đối thủ đứng chéo sân đón cầu
     } else {
-      botX = isEven ? -1.15 : 1.15;    // Bot phát bên phải nếu chẵn, bên trái nếu lẻ
-      playerX = isEven ? 1.15 : -1.15; // Player đứng chéo sân đón cầu
+      botX = isEven ? -1.15 : 1.15;    // Đối thủ phát bên phải nếu chẵn, bên trái nếu lẻ (theo góc nhìn đối thủ)
+      playerX = isEven ? 1.15 : -1.15; // Người chơi đứng chéo sân đón cầu
     }
 
     this.player.group.position.set(playerX, 0, 4.6);
@@ -296,14 +337,14 @@ export class GameManager {
 
     // Cầu đặt ngay trên tay người phát cầu tương ứng
     this.shuttlecock.ground();
-    if (this.currentServer === 'player') {
+    if (isMyTurnToServe) {
       this.shuttlecock.position.set(playerX + (isEven ? 0.35 : -0.35), 1.05, 4.25);
       const sideText = isEven ? 'Ô PHẢI (Điểm chẵn)' : 'Ô TRÁI (Điểm lẻ)';
       this.notifyUI('BẠN PHÁT CẦU 🏸', `${sideText} · Bấm [ĐÁNH CẦU] để phát chéo sân`, 'info');
     } else {
       this.shuttlecock.position.set(botX + (isEven ? -0.35 : 0.35), 1.05, -4.25);
       const sideText = isEven ? 'Ô PHẢI (Điểm chẵn)' : 'Ô TRÁI (Điểm lẻ)';
-      this.notifyUI('ĐỐI THỦ PHÁT CẦU 🤖', `Đối thủ phát từ ${sideText} · Chuẩn bị!`, 'warning');
+      this.notifyUI(this.isMultiplayer ? 'ĐỐI THỦ PHÁT CẦU 🏸' : 'ĐỐI THỦ PHÁT CẦU 🤖', `Đối thủ đang phát từ ${sideText} · Chuẩn bị!`, 'warning');
 
       if (!this.isMultiplayer) {
         if (this.botServeTimeout) clearTimeout(this.botServeTimeout);
@@ -378,9 +419,7 @@ export class GameManager {
   // HỆ THỐNG XỬ LÝ 4 NÚT HÀNH ĐỘNG ĐỘC LẬP & CHUẨN XÁC
   handlePlayerAction(actionType) {
     if (this.state === 'SERVE') {
-      if (!this.isMultiplayer && this.currentServer === 'player') {
-        this.playerServe();
-      } else if (this.isMultiplayer && ((this.multiplayerSlot === 0 && this.currentServer === 'player') || (this.multiplayerSlot === 1 && this.currentServer === 'bot'))) {
+      if (this.canPlayerServe()) {
         this.playerServe();
       }
       return;
@@ -448,9 +487,7 @@ export class GameManager {
 
   attemptSmartHit() {
     if (this.state === 'SERVE') {
-      if (!this.isMultiplayer && this.currentServer === 'player') {
-        this.playerServe();
-      } else if (this.isMultiplayer && ((this.multiplayerSlot === 0 && this.currentServer === 'player') || (this.multiplayerSlot === 1 && this.currentServer === 'bot'))) {
+      if (this.canPlayerServe()) {
         this.playerServe();
       }
       return;
@@ -849,6 +886,9 @@ export class GameManager {
     if (winner === 'player') {
       this.playerScore++;
       this.currentServer = 'player';
+      if (this.isMultiplayer) {
+        this.serverSlot = this.multiplayerSlot; // Bên thắng rally giữ quyền phát cầu lượt kế tiếp
+      }
       this.player.playAction('celebrate');
       if (this.teammate && this.isDoubles) this.teammate.playAction('celebrate');
       sounds.playCheer();
@@ -857,15 +897,25 @@ export class GameManager {
     } else {
       this.botScore++;
       this.currentServer = 'bot';
+      if (this.isMultiplayer) {
+        this.serverSlot = (this.multiplayerSlot === 0 ? 1 : 0); // Đổi lượt phát cầu cho đối thủ
+      }
       this.bot.playAction('celebrate');
       this.notifyUI('ĐỐI THỦ GHI ĐIỂM! 🤖', `${reason} · Tỷ số: ${this.playerScore} - ${this.botScore}`, 'score-bot');
     }
 
     if (this.isMultiplayer) {
+      const slot0Score = (this.multiplayerSlot === 0) ? this.playerScore : this.botScore;
+      const slot1Score = (this.multiplayerSlot === 1) ? this.playerScore : this.botScore;
+      const scorerSlot = (winner === 'player') ? this.multiplayerSlot : (this.multiplayerSlot === 0 ? 1 : 0);
+
       network.sendScore({
-        team1Score: this.playerScore,
-        team2Score: this.botScore,
-        scorerTeam: winner === 'player' ? 1 : 2,
+        slot0Score,
+        slot1Score,
+        serverSlot: this.serverSlot,
+        scorerSlot,
+        team1Score: slot0Score,
+        team2Score: slot1Score,
         reason
       });
     }
@@ -1187,11 +1237,12 @@ export class GameManager {
     // TRONG LÚC GIAO CẦU (SERVE):
     // QUẢ CẦU BẮT BUỘC ĐI THEO NGƯỜI PHÁT CẦU - KHÔNG BAO GIỜ BỊ NGƯỜI 1 NƠI CẦU 1 NƠI!
     if (this.state === 'SERVE') {
-      if (this.currentServer === 'player') {
+      const isMyTurn = this.canPlayerServe();
+      if (isMyTurn) {
         const px = this.player.group.position.x;
         const pz = this.player.group.position.z;
         this.shuttlecock.position.set(
-          px + 0.35,
+          px + (px > 0 ? 0.35 : -0.35),
           1.05 + Math.sin(this.stateTimer * 4.5) * 0.04,
           pz - 0.35
         );
@@ -1200,7 +1251,7 @@ export class GameManager {
         const bx = this.bot.group.position.x;
         const bz = this.bot.group.position.z;
         this.shuttlecock.position.set(
-          bx - 0.35,
+          bx + (bx < 0 ? -0.35 : 0.35),
           1.05 + Math.sin(this.stateTimer * 4.5) * 0.04,
           bz + 0.35
         );
@@ -1401,6 +1452,7 @@ export class GameManager {
     if (this.isMultiplayer) {
       try { network.leaveRoom(); } catch (e) {}
       this.isMultiplayer = false;
+      this.serverSlot = 0;
     }
     this.isDoubles = false;
 
