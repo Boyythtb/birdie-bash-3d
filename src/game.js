@@ -198,20 +198,36 @@ export class GameManager {
     this.stateTimer = 0;
     this.rallyCount = 0;
 
-    // Đặt vị trí người chơi và đối thủ
-    this.player.group.position.set(1.0, 0, 4.6);
+    // LUẬT CẦU LÔNG CHUẨN QUỐC TẾ BWF (EVEN / ODD SERVICE BOX):
+    // Điểm số CHẴN (0, 2, 4...) -> Đứng ở ô giao cầu bên PHẢI
+    // Điểm số LẺ (1, 3, 5...) -> Đứng ở ô giao cầu bên TRÁI
+    const serverScore = this.currentServer === 'player' ? this.playerScore : this.botScore;
+    const isEven = (serverScore % 2 === 0);
+
+    let playerX, botX;
+    if (this.currentServer === 'player') {
+      playerX = isEven ? 1.15 : -1.15; // Player phát bên phải nếu chẵn, bên trái nếu lẻ
+      botX = isEven ? -1.15 : 1.15;    // Đối thủ đứng chéo sân đón cầu
+    } else {
+      botX = isEven ? -1.15 : 1.15;    // Bot phát bên phải nếu chẵn, bên trái nếu lẻ
+      playerX = isEven ? 1.15 : -1.15; // Player đứng chéo sân đón cầu
+    }
+
+    this.player.group.position.set(playerX, 0, 4.6);
     this.player.state = 'idle';
-    this.bot.group.position.set(-1.0, 0, -4.6);
+    this.bot.group.position.set(botX, 0, -4.6);
     this.bot.state = 'idle';
 
-    // CẦU LUÔN NẰM NGAY TRÊN TAY NGƯỜI PHÁT CẦU - KHÔNG BAO GIỜ BỊ RỜI NHAU
+    // Cầu đặt ngay trên tay người phát cầu tương ứng
     this.shuttlecock.ground();
     if (this.currentServer === 'player') {
-      this.shuttlecock.position.set(1.35, 1.05, 4.25);
-      this.notifyUI('BẠN PHÁT CẦU', 'Chỉ cần nhấn [SPACE] hoặc Click chuột để giao cầu', 'info');
+      this.shuttlecock.position.set(playerX + (isEven ? 0.35 : -0.35), 1.05, 4.25);
+      const sideText = isEven ? 'Ô PHẢI (Điểm chẵn)' : 'Ô TRÁI (Điểm lẻ)';
+      this.notifyUI('BẠN PHÁT CẦU 🏸', `${sideText} · Bấm [ĐÁNH CẦU] để phát chéo sân`, 'info');
     } else {
-      this.shuttlecock.position.set(-1.35, 1.05, -4.25);
-      this.notifyUI('ĐỐI THỦ PHÁT CẦU', 'Chuẩn bị đón cầu!', 'warning');
+      this.shuttlecock.position.set(botX + (isEven ? -0.35 : 0.35), 1.05, -4.25);
+      const sideText = isEven ? 'Ô PHẢI (Điểm chẵn)' : 'Ô TRÁI (Điểm lẻ)';
+      this.notifyUI('ĐỐI THỦ PHÁT CẦU 🤖', `Đối thủ phát từ ${sideText} · Chuẩn bị!`, 'warning');
 
       if (!this.isMultiplayer) {
         setTimeout(() => {
@@ -229,9 +245,12 @@ export class GameManager {
     sounds.playHit(false);
     this.particles.emitHit(this.shuttlecock.position, 14, false);
 
-    const targetX = THREE.MathUtils.clamp(this.aimTarget.x, -1.9, 1.9);
-    const targetZ = -4.8;
-    const startPos = this.player.group.position.clone().add(new THREE.Vector3(0.35, 1.1, -0.35));
+    // Phát cầu BẮT BUỘC chéo sân theo luật BWF:
+    const isPlayerRight = this.player.group.position.x > 0;
+    const baseTargetX = isPlayerRight ? -1.15 : 1.15;
+    const targetX = THREE.MathUtils.clamp(baseTargetX + (this.aimTarget.x * 0.3), isPlayerRight ? -2.2 : 0.4, isPlayerRight ? -0.4 : 2.2);
+    const targetZ = -4.8; // Rơi qua vạch phát cầu ngắn (-1.98m)
+    const startPos = this.player.group.position.clone().add(new THREE.Vector3(isPlayerRight ? 0.35 : -0.35, 1.1, -0.35));
 
     const vel = this.calculateTrajectory(startPos, new THREE.Vector3(targetX, 0, targetZ), 'clear', 0.95);
 
@@ -252,7 +271,7 @@ export class GameManager {
       });
     }
 
-    this.notifyUI('RALLY BẮT ĐẦU!', 'Đang tranh cầu', 'success');
+    this.notifyUI('GIAO CẦU HỢP LỆ! 🏸', 'Rally bắt đầu', 'success');
   }
 
   botServe() {
@@ -261,9 +280,11 @@ export class GameManager {
     sounds.playHit(false);
     this.particles.emitHit(this.shuttlecock.position, 12, false);
 
-    const targetX = (Math.random() - 0.5) * 2.2;
+    // Bot phát chéo sân sang ô của player
+    const isBotRight = this.bot.group.position.x < 0;
+    const targetX = isBotRight ? 1.15 + (Math.random() - 0.5) * 0.5 : -1.15 + (Math.random() - 0.5) * 0.5;
     const targetZ = 4.8;
-    const startPos = this.bot.group.position.clone().add(new THREE.Vector3(-0.35, 1.1, 0.35));
+    const startPos = this.bot.group.position.clone().add(new THREE.Vector3(isBotRight ? -0.35 : 0.35, 1.1, 0.35));
 
     const vel = this.calculateTrajectory(startPos, new THREE.Vector3(targetX, 0, targetZ), 'clear', 0.95);
 
@@ -510,10 +531,36 @@ export class GameManager {
       const isInLength = Math.abs(landZ) <= COURT.HALF_LENGTH;
       const isInside = isInWidth && isInLength;
 
+      // LUẬT PHÁT CẦU (BWF SERVICE RULES):
+      if (s.shotType === 'serve') {
+        const isShortServe = Math.abs(landZ) < COURT.SHORT_SERVICE_Z;
+        if (isShortServe) {
+          // Lỗi phát cầu ngắn (không qua vạch giao cầu ngắn 1.98m)
+          const winner = s.lastHitter === 'player' ? 'bot' : 'player';
+          this.onPointScored(winner, 'LỖI PHÁT CẦU NGẮN! (SHORT SERVICE FAULT)');
+          return;
+        }
+
+        // Kiểm tra phát chéo sân:
+        const hitterWasPlayer = s.lastHitter === 'player';
+        const serverX = hitterWasPlayer ? this.player.group.position.x : this.bot.group.position.x;
+        const serverWasRight = hitterWasPlayer ? (serverX > 0) : (serverX < 0);
+        // Nếu phát từ ô phải -> cầu phải rơi sang ô phải của đối phương:
+        const landedRightCourt = hitterWasPlayer ? (landX < 0) : (landX > 0);
+        if (serverWasRight !== landedRightCourt) {
+          const winner = hitterWasPlayer ? 'bot' : 'player';
+          this.onPointScored(winner, 'LỖI PHÁT NHẦM Ô! (WRONG COURT FAULT)');
+          return;
+        }
+      }
+
+      // LUẬT TÍNH ĐIỂM BÌNH THƯỜNG TRONG RALLY:
       if (!isInside) {
+        // Cầu bay ra ngoài sân: Bên đánh cầu ra ngoài bị mất điểm
         const winner = s.lastHitter === 'player' ? 'bot' : 'player';
         this.onPointScored(winner, 'CẦU RA NGOÀI! (OUT)');
       } else {
+        // Cầu rơi trong sân: Bên không đỡ được cầu bị thua điểm
         const winner = landZ < 0 ? 'player' : 'bot';
         this.onPointScored(winner, 'CẦU TRONG SÂN! (IN POINT)');
       }

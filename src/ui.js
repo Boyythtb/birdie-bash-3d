@@ -1,3 +1,47 @@
+
+// ===================================================
+// HỆ THỐNG THÔNG BÁO TOAST CAO CẤP (THAY THẾ TOÀN BỘ ALERT)
+// ===================================================
+export function showGameToast(message, type = 'info', duration = 2800) {
+  let container = document.getElementById('game-toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'game-toast-container';
+    container.className = 'game-toast-container';
+    document.body.appendChild(container);
+  }
+
+  const icons = {
+    success: '✅',
+    warning: '⚠️',
+    error: '❌',
+    info: '🏸'
+  };
+
+  const toast = document.createElement('div');
+  toast.className = `game-toast-pill toast-${type}`;
+  toast.innerHTML = `
+    <span class="toast-icon">${icons[type] || '✨'}</span>
+    <span class="toast-text">${message}</span>
+  `;
+
+  container.appendChild(toast);
+
+  // Hiệu ứng vào
+  requestAnimationFrame(() => {
+    toast.classList.add('show');
+  });
+
+  // Tự động mờ và xóa sau duration
+  setTimeout(() => {
+    toast.classList.remove('show');
+    toast.classList.add('hide');
+    setTimeout(() => {
+      if (toast.parentElement) toast.parentElement.removeChild(toast);
+    }, 300);
+  }, duration);
+}
+
 import confetti from 'canvas-confetti';
 import { network } from './network.js';
 
@@ -554,6 +598,20 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
       </div>
     </div>
 
+    
+    <!-- MODAL XÁC NHẬN RỜI TRẬN ĐẤU (THAY THẾ CONFIRM ALERT THÔ KỆCH) -->
+    <div id="modal-confirm-exit" class="modal-overlay hidden">
+      <div class="confirm-modal-box">
+        <div class="confirm-icon-wrap">🚪</div>
+        <h3 class="confirm-title">RỜI TRẬN ĐẤU?</h3>
+        <p class="confirm-sub">Trận đấu hiện tại sẽ kết thúc và tỷ số sẽ không được lưu. Bạn có chắc muốn quay về sảnh?</p>
+        <div class="confirm-actions">
+          <button id="btn-cancel-exit" class="btn-confirm-stay">TIẾP TỤC ĐẤU 🏸</button>
+          <button id="btn-confirm-exit" class="btn-confirm-leave">RỜI TRẬN</button>
+        </div>
+      </div>
+    </div>
+
     <!-- MODAL KẾT THÚC TRẬN ĐẤU (GAME OVER) -->
     <div id="game-over-modal" class="modal-overlay hidden">
       <div class="game-over-box">
@@ -886,9 +944,9 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
       const code = displayRoomCode.innerText.trim();
       if (!code || code === '----') return;
       navigator.clipboard.writeText(code).then(() => {
-        alert(`✅ Đã sao chép mã phòng: ${code}`);
+        showGameToast(`Đã sao chép mã phòng: ${code}`, 'success');
       }).catch(() => {
-        prompt('Mã phòng:', code);
+        showGameToast(`Mã phòng: ${code}`, 'info');
       });
     });
   }
@@ -901,9 +959,9 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
       if (!code || code === '----') return;
       const inviteUrl = `${window.location.origin}${window.location.pathname}?room=${code}`;
       navigator.clipboard.writeText(inviteUrl).then(() => {
-        alert(`✅ ĐÃ SAO CHÉP LINK MỜI!\n\n${inviteUrl}\n\nBạn bè chỉ cần bấm link hoặc quét mã QR là vào thẳng phòng đấu!`);
+        showGameToast('Đã sao chép link mời bạn bè vào bộ nhớ tạm!', 'success');
       }).catch(() => {
-        prompt('Sao chép link mời bạn bè:', inviteUrl);
+        showGameToast('Đã sao chép link mời!', 'success');
       });
     });
   }
@@ -958,7 +1016,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
         if (onlineViewRoom) onlineViewRoom.classList.remove('hidden');
         network.joinRoom(code.toUpperCase(), playerName, selectedChar.avatar, selectedChar.color);
       } else {
-        alert('Vui lòng nhập mã phòng hợp lệ (4 ký tự)');
+        showGameToast('Vui lòng nhập mã phòng hợp lệ (4 ký tự)', 'warning');
       }
     });
   }
@@ -988,15 +1046,33 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     document.getElementById('pc-hints').classList.add('hidden');
   });
 
-  document.getElementById('btn-pause-game').addEventListener('click', () => {
-    if (confirm('Bạn có chắc muốn thoát trận đấu để về màn hình chính?')) {
+  const modalConfirmExit = document.getElementById('modal-confirm-exit');
+  const btnPauseGame = document.getElementById('btn-pause-game');
+  if (btnPauseGame) {
+    btnPauseGame.addEventListener('click', () => {
+      if (modalConfirmExit) modalConfirmExit.classList.remove('hidden');
+    });
+  }
+
+  const btnCancelExit = document.getElementById('btn-cancel-exit');
+  if (btnCancelExit) {
+    btnCancelExit.addEventListener('click', () => {
+      if (modalConfirmExit) modalConfirmExit.classList.add('hidden');
+    });
+  }
+
+  const btnConfirmExit = document.getElementById('btn-confirm-exit');
+  if (btnConfirmExit) {
+    btnConfirmExit.addEventListener('click', () => {
+      if (modalConfirmExit) modalConfirmExit.classList.add('hidden');
       gameManager.state = 'MENU';
       document.getElementById('hud').classList.add('hidden');
       document.getElementById('main-menu').classList.remove('hidden');
       const inGameControls = document.getElementById('in-game-controls');
       if (inGameControls) inGameControls.classList.add('hidden');
-    }
-  });
+      showGameToast('Đã quay về sảnh chính', 'info');
+    });
+  }
 
   document.getElementById('btn-play-again').addEventListener('click', () => {
     document.getElementById('game-over-modal').classList.add('hidden');
