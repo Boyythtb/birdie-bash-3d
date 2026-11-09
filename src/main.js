@@ -156,30 +156,34 @@ const clock = new THREE.Clock();
 function animate() {
   requestAnimationFrame(animate);
 
-  const dt = Math.min(clock.getDelta(), 0.05);
-  const elapsed = clock.getElapsedTime();
+  try {
+    const dt = Math.min(clock.getDelta(), 0.05);
+    const elapsed = clock.getElapsedTime();
 
-  // Cập nhật hoạt cảnh khán giả
-  if (court.update) court.update(elapsed);
+    // Cập nhật hoạt cảnh khán giả
+    if (court.update) court.update(elapsed);
 
-  // Cập nhật quả cầu lông
-  shuttlecock.update(dt);
+    // Cập nhật quả cầu lông
+    shuttlecock.update(dt);
 
-  // Cập nhật hạt hiệu ứng
-  particles.update(dt);
+    // Cập nhật hạt hiệu ứng
+    particles.update(dt);
 
-  // Nếu đang đánh với bot ở trạng thái RALLY
-  if (!gameManager.isMultiplayer && gameManager.state === 'RALLY') {
-    botAI.update(dt);
-  } else if (!gameManager.isMultiplayer && gameManager.state === 'SERVE') {
-    bot.update(dt);
+    // Nếu đang đánh với bot ở trạng thái RALLY
+    if (!gameManager.isMultiplayer && gameManager.state === 'RALLY') {
+      botAI.update(dt, player.group.position);
+    } else if (!gameManager.isMultiplayer && gameManager.state === 'SERVE') {
+      bot.update(dt);
+    }
+
+    // Cập nhật game manager
+    gameManager.update(dt);
+
+    // Render scene
+    renderer.render(scene, camera);
+  } catch (err) {
+    console.error('Lỗi trong animation loop:', err);
   }
-
-  // Cập nhật game manager
-  gameManager.update(dt);
-
-  // Render scene
-  renderer.render(scene, camera);
 }
 
 animate();

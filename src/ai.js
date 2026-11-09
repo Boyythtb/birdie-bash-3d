@@ -23,7 +23,8 @@ export class BotAI {
     }
   }
 
-  update(dt, playerPos) {
+  update(dt, playerPos = null) {
+    const pPos = playerPos || new THREE.Vector3(0, 0, 4.5);
     const s = this.shuttlecock;
     const isBallHeadedToBot = s.isAirborne && s.velocity.z < 0;
 
@@ -58,10 +59,11 @@ export class BotAI {
     }
 
     this.bot.update(dt, inputDir);
-    this.checkHit(playerPos);
+    this.checkHit(pPos);
   }
 
-  checkHit(playerPos) {
+  checkHit(playerPos = null) {
+    const pPos = playerPos || new THREE.Vector3(0, 0, 4.5);
     const s = this.shuttlecock;
     if (!s.isAirborne || s.velocity.z > 0 || s.lastHitter === 'bot') return;
 
@@ -72,11 +74,12 @@ export class BotAI {
     const canReach = distXZ < 1.65 && height > 0.15 && height < 3.8;
 
     if (canReach && s.position.z < -0.3) {
-      this.executeBotShot(playerPos);
+      this.executeBotShot(pPos);
     }
   }
 
-  executeBotShot(playerPos) {
+  executeBotShot(playerPos = null) {
+    const pPos = playerPos || new THREE.Vector3(0, 0, 4.5);
     const s = this.shuttlecock;
     const height = s.position.y;
     const startPos = s.position.clone();
@@ -87,7 +90,7 @@ export class BotAI {
     if (this.difficulty === 'ace') {
       if (height > 1.7 && rand < 0.7) {
         shotType = 'smash';
-      } else if (playerPos.z > 4.8 && rand < 0.55) {
+      } else if (pPos.z > 4.8 && rand < 0.55) {
         shotType = 'drop';
       } else {
         shotType = 'clear';
@@ -107,7 +110,7 @@ export class BotAI {
     // Chọn điểm rơi trên sân người chơi (Luôn nằm trong khoảng an toàn X: [-2.1, 2.1], Z: [1.2, 5.8])
     let targetX = 0;
     if (this.difficulty !== 'rookie') {
-      targetX = playerPos.x > 0 ? -1.7 : 1.7;
+      targetX = pPos.x > 0 ? -1.7 : 1.7;
       targetX += (Math.random() - 0.5) * 0.5;
     } else {
       targetX = (Math.random() - 0.5) * 1.8;

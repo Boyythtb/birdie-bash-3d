@@ -30,12 +30,13 @@ export class GameManager {
 
     // Rung lắc camera (Screen Shake)
     this.shakeIntensity = 0;
-    this.defaultCamPos = new THREE.Vector3(0, 7.8, 14.0);
-    this.defaultCamLookAt = new THREE.Vector3(0, 0.4, 0.4);
+    this.defaultCamPos = new THREE.Vector3(-7.2, 10.5, 13.2);
+    this.defaultCamLookAt = new THREE.Vector3(1.0, 0.4, -0.5);
 
-    // Lưu trữ phím điều khiển
+    // Lưu trữ phím điều khiển & Cảm ứng vuốt di chuyển
     this.keys = {};
     this.virtualJoystickDir = { x: 0, z: 0 };
+    this.joystickVector = this.virtualJoystickDir;
 
     // VÒNG CHỈ THỊ HƯỚNG ĐÁNH THÔNG MINH (Smart Aim Reticle)
     this.aimTarget = new THREE.Vector3(0, 0.01, -4.8);
@@ -79,8 +80,12 @@ export class GameManager {
       this.keys[e.code] = true;
 
       if (this.state === 'SERVE' && (e.code === 'Space' || e.code === 'KeyJ')) {
-        if (!this.isMultiplayer || (this.multiplayerSlot === 0 && this.currentServer === 'player') || (this.multiplayerSlot === 1 && this.currentServer === 'bot')) {
+        if (!this.isMultiplayer && this.currentServer === 'player') {
           this.playerServe();
+        } else if (this.isMultiplayer) {
+          if ((this.multiplayerSlot === 0 && this.currentServer === 'player') || (this.multiplayerSlot === 1 && this.currentServer === 'bot')) {
+            this.playerServe();
+          }
         }
       } else if (this.state === 'RALLY') {
         if (e.code === 'Space' || e.code === 'KeyJ') {
@@ -104,8 +109,12 @@ export class GameManager {
         return;
       }
       if (this.state === 'SERVE') {
-        if (!this.isMultiplayer || (this.multiplayerSlot === 0 && this.currentServer === 'player') || (this.multiplayerSlot === 1 && this.currentServer === 'bot')) {
+        if (!this.isMultiplayer && this.currentServer === 'player') {
           this.playerServe();
+        } else if (this.isMultiplayer) {
+          if ((this.multiplayerSlot === 0 && this.currentServer === 'player') || (this.multiplayerSlot === 1 && this.currentServer === 'bot')) {
+            this.playerServe();
+          }
         }
       } else if (this.state === 'RALLY') {
         this.attemptSmartHit();
@@ -621,5 +630,6 @@ export class GameManager {
     } else {
       this.camera.position.lerp(this.defaultCamPos, 0.1);
     }
+    this.camera.lookAt(this.defaultCamLookAt);
   }
 }
