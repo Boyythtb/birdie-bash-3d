@@ -195,15 +195,34 @@ export class GameManager {
       sounds.playWhistle();
       this.notifyUI('ĐIỂM SỐ ONLINE!', data.reason || '', 'info');
 
-      if (this.playerScore >= this.targetScore || this.botScore >= this.targetScore) {
+      const matchWinner = this.checkMatchWinner();
+      if (matchWinner) {
         if (this.gameOverTimeout) clearTimeout(this.gameOverTimeout);
         this.gameOverTimeout = setTimeout(() => {
           if (this.state !== 'MENU') {
-            this.gameOver(this.playerScore >= this.targetScore ? 'player' : 'bot');
+            this.gameOver(matchWinner);
           }
         }, 500);
       }
     });
+  }
+
+  // LUẬT TÍNH ĐIỂM BẮT BUỘC THEO QUỐC TẾ BWF (BWF LAW 7 - SCORING SYSTEM):
+  // 1. Bên nào đạt mốc targetScore và cách biệt ít nhất 2 điểm sẽ thắng hiệp (Deuce rule)
+  // 2. Nếu hòa liên tục, bên nào chạm trần điểm tối đa (maxCap) trước sẽ thắng ván đấu
+  checkMatchWinner() {
+    const target = this.targetScore;
+    const maxCap = (target === 21) ? 30 : (target + 4); // 11 cho target 7; 15 cho target 11; 30 cho target 21
+    const p = this.playerScore;
+    const b = this.botScore;
+
+    if ((p >= target || b >= target) && Math.abs(p - b) >= 2) {
+      return p > b ? 'player' : 'bot';
+    }
+    if (p >= maxCap || b >= maxCap) {
+      return p > b ? 'player' : 'bot';
+    }
+    return null;
   }
 
   startGame(difficulty = 'pro', mode = 'bot', yourSlot = 0) {
@@ -386,9 +405,12 @@ export class GameManager {
     const pPos = this.player.group.position;
     const distXZ = new THREE.Vector2(pPos.x - s.position.x, pPos.z - s.position.z).length();
     const height = s.position.y;
-    // Bán kính tiếp xúc vợt tối ưu kèm Nam châm hút vị trí
-    const maxReach = actionType === 'dive' ? 4.2 : (actionType === 'smash' ? 3.0 : 2.65);
-    return distXZ <= maxReach && height >= 0.05 && height <= 4.8 && s.position.z > 0.05;
+    // Bán kính tiếp xúc vợt thực tế (giới hạn trong tầm với hợp lý, triệt tiêu lỗi đánh toàn map):
+    // - Dive (cứu cầu): tối đa 2.2m (bước rướn chân lao người trượt sàn)
+    // - Smash (đập cầu): tối đa 1.65m (bật nhảy tại chỗ vươn cao)
+    // - Clear / Drop / Hit: tối đa 1.45m (sải tay + chiều dài cán vợt)
+    const maxReach = actionType === 'dive' ? 2.2 : (actionType === 'smash' ? 1.65 : 1.45);
+    return distXZ <= maxReach && height >= 0.05 && height <= 4.2 && s.position.z > 0.05;
   }
 
   // 1. CƠ CHẾ "1 NÚT DUY NHẤT" (Contextual One-Button Hit)
@@ -405,18 +427,18 @@ export class GameManager {
     const sZ = s.position.z;
     const pZ = pPos.z;
 
-    // 💥 1. Khi quả cầu đang ở trên cao: Tự động Bật nhảy đập cầu (Jump Smash) cắm sàn cực mạnh!
-    if (height >= 2.15 && distXZ <= 3.2) {
+    // 💥 1. Khi quả cầu đang ở trên cao và trong tầm bật nhảy: Jump Smash cắm sàn!
+    if (height >= 2.0 && distXZ <= 1.65) {
       return 'smash';
     }
 
-    // 🪶 2. Khi bạn đang đứng sát lưới và cầu ở tầm thấp: Tự động chạm nhẹ vợt bỏ nhỏ (Drop shot)!
-    if ((pZ <= 2.6 || sZ <= 2.3) && height < 2.1 && height >= 0.55) {
+    // 🪶 2. Khi bạn đang đứng sát lưới và cầu ở tầm thấp: Chạm nhẹ bỏ nhỏ (Drop shot)!
+    if ((pZ <= 2.6 || sZ <= 2.3) && height < 2.0 && height >= 0.55 && distXZ <= 1.45) {
       return 'drop';
     }
 
-    // 💨 3. Khi quả cầu rơi ở xa tầm chân hoặc sát đất: Tự động lao người trượt sàn (Dive) cứu bóng!
-    if ((distXZ >= 2.15 && distXZ <= 4.2) || (height <= 0.9 && sZ > 0.2)) {
+    // 💨 3. Khi quả cầu rơi ở xa tầm chân hoặc sát đất trong cự ly cứu: Lao người trượt sàn (Dive)!
+    if (distXZ > 1.35 && distXZ <= 2.2 && height <= 1.4 && sZ > 0.1) {
       return 'dive';
     }
 
@@ -540,25 +562,35 @@ export class GameManager {
     this.registerRallyHit('player', actionType);
 
     // 3. NAM CHÂM HÚT VỊ TRÍ (Magnetic Step Assist)
-    // Bạn chỉ cần chạy về hướng gần quả cầu. Khi quả cầu rơi tới tầm đánh,
-    // nhân vật sẽ tự động trượt nhẹ 1 bước thuận chân vào sát quả cầu:
-    // Triệt tiêu 100% tình trạng vung vợt chém gió hụt vì lệch vài cm!
+    // Chỉ hỗ trợ bước đệm nhỏ (tối đa 0.25m) để nhân vật xoay chân thuận vào góc đánh
+    // TUYỆT ĐỐI KHÔNG dịch chuyển tức thời xuyên bản đồ!
     if (actionType !== 'dive') {
-      const idealOffsetX = (s.position.x > pPos.x) ? -0.32 : 0.32;
-      const idealOffsetZ = (actionType === 'smash') ? 0.40 : 0.22;
+      const idealOffsetX = (s.position.x > pPos.x) ? -0.28 : 0.28;
+      const idealOffsetZ = (actionType === 'smash') ? 0.35 : 0.20;
       const stepTargetX = THREE.MathUtils.clamp(s.position.x + idealOffsetX, -2.15, 2.15);
       const stepTargetZ = THREE.MathUtils.clamp(s.position.z + idealOffsetZ, 1.15, 5.75);
 
-      pPos.x = THREE.MathUtils.lerp(pPos.x, stepTargetX, 0.65);
-      pPos.z = THREE.MathUtils.lerp(pPos.z, stepTargetZ, 0.65);
+      const dx = stepTargetX - pPos.x;
+      const dz = stepTargetZ - pPos.z;
+      const stepDist = Math.hypot(dx, dz);
+      if (stepDist > 0.01) {
+        const stepClamped = Math.min(stepDist, 0.25);
+        pPos.x += (dx / stepDist) * stepClamped * 0.7;
+        pPos.z += (dz / stepDist) * stepClamped * 0.7;
+      }
     }
 
     // 1. CỨU CẦU (Dive)
+    // Giới hạn cự ly trượt sàn tối đa 0.75m khi rướn cứu bóng
     if (actionType === 'dive') {
-      const slideTargetX = THREE.MathUtils.clamp(s.position.x, -2.1, 2.1);
-      const slideTargetZ = THREE.MathUtils.clamp(s.position.z + 0.3, 1.2, 5.8);
-      this.player.group.position.x = THREE.MathUtils.lerp(pPos.x, slideTargetX, 0.85);
-      this.player.group.position.z = THREE.MathUtils.lerp(pPos.z, slideTargetZ, 0.85);
+      const slideDx = s.position.x - pPos.x;
+      const slideDz = (s.position.z + 0.25) - pPos.z;
+      const slideDist = Math.hypot(slideDx, slideDz);
+      if (slideDist > 0.01) {
+        const slideClamped = Math.min(slideDist, 0.75);
+        pPos.x = THREE.MathUtils.clamp(pPos.x + (slideDx / slideDist) * slideClamped, -2.15, 2.15);
+        pPos.z = THREE.MathUtils.clamp(pPos.z + (slideDz / slideDist) * slideClamped, 1.15, 5.75);
+      }
       this.player.playAction('dive');
       sounds.playDive();
       this.particles.emitDust(this.player.group.position);
@@ -702,44 +734,109 @@ export class GameManager {
 
       const landX = s.position.x;
       const landZ = s.position.z;
-
+      const hitter = s.lastHitter;
+      const isServe = (s.shotType === 'serve');
       const halfWidth = this.isDoubles ? COURT.HALF_WIDTH : COURT.HALF_SINGLES_WIDTH;
-      const isInWidth = Math.abs(landX) <= halfWidth;
-      const isInLength = Math.abs(landZ) <= COURT.HALF_LENGTH;
-      const isInside = isInWidth && isInLength;
 
-      // LUẬT PHÁT CẦU (BWF SERVICE RULES):
-      if (s.shotType === 'serve') {
-        const isShortServe = Math.abs(landZ) < COURT.SHORT_SERVICE_Z;
-        if (isShortServe) {
-          // Lỗi phát cầu ngắn (không qua vạch giao cầu ngắn 1.98m)
-          const winner = s.lastHitter === 'player' ? 'bot' : 'player';
-          this.onPointScored(winner, 'LỖI PHÁT CẦU NGẮN! (SHORT SERVICE FAULT)');
+      // ========================================================
+      // 1. CẦU KHÔNG QUA LƯỚI / RƠI Ở SÂN NHÀ CỦA BÊN VỪA ĐÁNH
+      // ========================================================
+      if (hitter === 'player' && landZ >= 0) {
+        const reason = isServe ? 'GIAO CẦU KHÔNG QUA LƯỚI! (NET FAULT)' : 'CẦU KHÔNG QUA LƯỚI! (NET FAULT)';
+        this.onPointScored('bot', reason);
+        return;
+      }
+
+      if (hitter === 'bot' && landZ <= 0) {
+        const reason = isServe ? 'ĐỐI THỦ GIAO CẦU KHÔNG QUA LƯỚI!' : 'ĐỐI THỦ ĐÁNH KHÔNG QUA LƯỚI!';
+        this.onPointScored('player', reason);
+        return;
+      }
+
+      // ========================================================
+      // 2. LUẬT GIAO CẦU CHUẨN QUỐC TẾ BWF (BWF LAW 9, 10 & 11)
+      // ========================================================
+      if (isServe) {
+        const maxServiceZ = this.isDoubles ? COURT.DOUBLES_LONG_SERVICE_Z : COURT.HALF_LENGTH;
+
+        if (hitter === 'player') {
+          // Player giao cầu sang sân Bot (Z < 0):
+          // a. Lỗi giao cầu ngắn (không qua vạch phát cầu ngắn 1.98m)
+          if (landZ > -COURT.SHORT_SERVICE_Z) {
+            this.onPointScored('bot', 'LỖI GIAO CẦU NGẮN! (SHORT SERVICE FAULT)');
+            return;
+          }
+          // b. Lỗi giao cầu dài ra ngoài vạch cuối
+          if (landZ < -maxServiceZ) {
+            const reason = this.isDoubles ? 'GIAO CẦU DÀI NGOÀI VẠCH ĐÔI! (LONG FAULT)' : 'GIAO CẦU DÀI RA NGOÀI SÂN! (LONG FAULT)';
+            this.onPointScored('bot', reason);
+            return;
+          }
+          // c. Lỗi ra ngoài vạch biên
+          if (Math.abs(landX) > halfWidth) {
+            const reason = this.isDoubles ? 'GIAO CẦU NGOÀI VẠCH BIÊN ĐÔI!' : 'GIAO CẦU NGOÀI VẠCH BIÊN ĐƠN!';
+            this.onPointScored('bot', reason);
+            return;
+          }
+          // d. Lỗi giao nhầm ô / Lệch vạch giữa sân (Phát chéo sân chuẩn BWF):
+          // Player phát từ ô Phải (player.x > 0) -> phải rơi vào ô Phải của Bot (landX < 0)
+          // Player phát từ ô Trái (player.x < 0) -> phải rơi vào ô Trái của Bot (landX > 0)
+          const serverWasRight = this.player.group.position.x > 0;
+          const landedRightCourt = landX < 0;
+          if (serverWasRight !== landedRightCourt) {
+            this.onPointScored('bot', 'LỖI GIAO CẦU NHẦM Ô! (WRONG COURT FAULT)');
+            return;
+          }
+
+          this.onPointScored('player', 'GIAO CẦU ĂN ĐIỂM TRỰC TIẾP! (ACE)');
           return;
-        }
+        } else {
+          // Bot giao cầu sang sân Player (Z > 0):
+          if (landZ < COURT.SHORT_SERVICE_Z) {
+            this.onPointScored('player', 'ĐỐI THỦ GIAO CẦU NGẮN! (SHORT SERVICE FAULT)');
+            return;
+          }
+          if (landZ > maxServiceZ) {
+            const reason = this.isDoubles ? 'ĐỐI THỦ GIAO DÀI NGOÀI VẠCH ĐÔI!' : 'ĐỐI THỦ GIAO DÀI RA NGOÀI SÂN!';
+            this.onPointScored('player', reason);
+            return;
+          }
+          if (Math.abs(landX) > halfWidth) {
+            const reason = this.isDoubles ? 'ĐỐI THỦ GIAO NGOÀI BIÊN ĐÔI!' : 'ĐỐI THỦ GIAO NGOÀI BIÊN ĐƠN!';
+            this.onPointScored('player', reason);
+            return;
+          }
+          const botWasRight = this.bot.group.position.x < 0;
+          const landedRightCourt = landX > 0;
+          if (botWasRight !== landedRightCourt) {
+            this.onPointScored('player', 'ĐỐI THỦ GIAO NHẦM Ô! (WRONG COURT FAULT)');
+            return;
+          }
 
-        // Kiểm tra phát chéo sân:
-        const hitterWasPlayer = s.lastHitter === 'player';
-        const serverX = hitterWasPlayer ? this.player.group.position.x : this.bot.group.position.x;
-        const serverWasRight = hitterWasPlayer ? (serverX > 0) : (serverX < 0);
-        // Nếu phát từ ô phải -> cầu phải rơi sang ô phải của đối phương:
-        const landedRightCourt = hitterWasPlayer ? (landX < 0) : (landX > 0);
-        if (serverWasRight !== landedRightCourt) {
-          const winner = hitterWasPlayer ? 'bot' : 'player';
-          this.onPointScored(winner, 'LỖI PHÁT NHẦM Ô! (WRONG COURT FAULT)');
+          this.onPointScored('bot', 'ĐỐI THỦ GIAO CẦU ĂN ĐIỂM! (ACE)');
           return;
         }
       }
 
-      // LUẬT TÍNH ĐIỂM BÌNH THƯỜNG TRONG RALLY:
+      // ========================================================
+      // 3. LUẬT TÍNH ĐIỂM TRONG PHA CẦU (RALLY RULES - BWF LAW 13)
+      // ========================================================
+      const isInWidth = Math.abs(landX) <= halfWidth;
+      const isInLength = Math.abs(landZ) <= COURT.HALF_LENGTH;
+      const isInside = isInWidth && isInLength;
+
       if (!isInside) {
-        // Cầu bay ra ngoài sân: Bên đánh cầu ra ngoài bị mất điểm
-        const winner = s.lastHitter === 'player' ? 'bot' : 'player';
-        this.onPointScored(winner, 'CẦU RA NGOÀI! (OUT)');
+        // Cầu bay ra ngoài sân: Bên vừa đánh làm mất điểm!
+        const winner = hitter === 'player' ? 'bot' : 'player';
+        const reason = hitter === 'player'
+          ? (this.isDoubles ? 'BẠN ĐÁNH CẦU NGOÀI BIÊN ĐÔI! (OUT)' : 'BẠN ĐÁNH CẦU RA NGOÀI SÂN! (OUT)')
+          : (this.isDoubles ? 'ĐỐI THỦ ĐÁNH NGOÀI BIÊN ĐÔI! (OUT)' : 'ĐỐI THỦ ĐÁNH CẦU RA NGOÀI! (OUT)');
+        this.onPointScored(winner, reason);
       } else {
-        // Cầu rơi trong sân: Bên không đỡ được cầu bị thua điểm
-        const winner = landZ < 0 ? 'player' : 'bot';
-        this.onPointScored(winner, 'CẦU TRONG SÂN! (IN POINT)');
+        // Cầu rơi hợp lệ trong sân đối phương: Bên vừa đánh ghi điểm!
+        const winner = hitter === 'player' ? 'player' : 'bot';
+        const reason = hitter === 'player' ? 'CẦU TRONG SÂN! (IN POINT)' : 'ĐỐI THỦ GHI ĐIỂM SÂN NHÀ!';
+        this.onPointScored(winner, reason);
       }
     }
   }
@@ -773,14 +870,37 @@ export class GameManager {
       });
     }
 
-    if (this.playerScore >= this.targetScore || this.botScore >= this.targetScore) {
+    const matchWinner = this.checkMatchWinner();
+    if (matchWinner) {
       if (this.gameOverTimeout) clearTimeout(this.gameOverTimeout);
       this.gameOverTimeout = setTimeout(() => {
         if (this.state !== 'MENU') {
-          this.gameOver(this.playerScore >= this.targetScore ? 'player' : 'bot');
+          this.gameOver(matchWinner);
         }
       }, 500);
     } else {
+      // Thông báo trạng thái Deuce hoặc Game Point kịch tính chuẩn BWF
+      const p = this.playerScore;
+      const b = this.botScore;
+      const target = this.targetScore;
+      const isDeuce = (p >= target - 1 && b >= target - 1 && p === b);
+      const isGamePointPlayer = (p >= target - 1 && p > b);
+      const isGamePointBot = (b >= target - 1 && b > p);
+
+      if (isDeuce) {
+        setTimeout(() => {
+          this.notifyUI('🔥 DEUCE! HÒA KỊCH TÍNH! 🔥', `Tỷ số ${p} - ${b} · Cách biệt 2 điểm để thắng!`, 'warning');
+        }, 900);
+      } else if (isGamePointPlayer) {
+        setTimeout(() => {
+          this.notifyUI('⚡ GAME POINT CHO BẠN! ⚡', `Tỷ số ${p} - ${b} · Còn 1 điểm nữa để chiến thắng!`, 'info');
+        }, 900);
+      } else if (isGamePointBot) {
+        setTimeout(() => {
+          this.notifyUI('⚠️ GAME POINT ĐỐI THỦ! ⚠️', `Tỷ số ${p} - ${b} · Đối thủ đang nắm điểm quyết định!`, 'warning');
+        }, 900);
+      }
+
       if (this.pointTimeout) clearTimeout(this.pointTimeout);
       this.pointTimeout = setTimeout(() => {
         if (this.state !== 'MENU') {
@@ -1112,39 +1232,43 @@ export class GameManager {
       }
 
       // 3. NAM CHÂM HÚT VỊ TRÍ (Magnetic Step Assist)
-      // Khi cầu bay về phía sân người chơi, hỗ trợ trượt nhẹ thuận chân vào quỹ đạo cầu
-      if (this.shuttlecock.isAirborne && this.shuttlecock.velocity.z > 0 && this.shuttlecock.position.z > 0.4) {
+      // Khi cầu bay về phía sân người chơi, chỉ hỗ trợ vi chỉnh nhẹ khi người chơi ĐÃ CHẠY ĐẾN GẦN (dưới 1.25m)
+      if (this.shuttlecock.isAirborne && this.shuttlecock.velocity.z > 0 && this.shuttlecock.position.z > 0.5) {
         const pPos = this.player.group.position;
         const sPos = this.shuttlecock.position;
         const distToBall = Math.hypot(pPos.x - sPos.x, pPos.z - sPos.z);
-        if (distToBall < 2.0 && sPos.y < 3.0) {
-          const pullTargetX = sPos.x + (sPos.x > pPos.x ? -0.32 : 0.32);
-          const pullTargetZ = sPos.z + 0.28;
-          pPos.x = THREE.MathUtils.lerp(pPos.x, THREE.MathUtils.clamp(pullTargetX, -2.15, 2.15), 0.12 * dt * 60);
-          pPos.z = THREE.MathUtils.lerp(pPos.z, THREE.MathUtils.clamp(pullTargetZ, 1.15, 5.75), 0.12 * dt * 60);
+        if (distToBall < 1.25 && sPos.y < 2.5) {
+          const pullTargetX = sPos.x + (sPos.x > pPos.x ? -0.28 : 0.28);
+          const pullTargetZ = sPos.z + 0.22;
+          pPos.x = THREE.MathUtils.lerp(pPos.x, THREE.MathUtils.clamp(pullTargetX, -2.15, 2.15), 0.06 * dt * 60);
+          pPos.z = THREE.MathUtils.lerp(pPos.z, THREE.MathUtils.clamp(pullTargetZ, 1.15, 5.75), 0.06 * dt * 60);
         }
       }
     }
 
-    // Di chuyển người chơi theo phím hoặc Joystick
+    // Di chuyển người chơi theo phím hoặc Joystick (chỉ trong pha cầu RALLY - chuẩn BWF Law 9 giữ vị trí khi giao cầu)
     const moveDir = { x: 0, z: 0 };
-    if (this.keys['KeyA'] || this.keys['ArrowLeft']) moveDir.x -= 1;
-    if (this.keys['KeyD'] || this.keys['ArrowRight']) moveDir.x += 1;
-    if (this.keys['KeyW'] || this.keys['ArrowUp']) moveDir.z -= 1;
-    if (this.keys['KeyS'] || this.keys['ArrowDown']) moveDir.z += 1;
+    if (this.state === 'RALLY') {
+      if (this.keys['KeyA'] || this.keys['ArrowLeft']) moveDir.x -= 1;
+      if (this.keys['KeyD'] || this.keys['ArrowRight']) moveDir.x += 1;
+      if (this.keys['KeyW'] || this.keys['ArrowUp']) moveDir.z -= 1;
+      if (this.keys['KeyS'] || this.keys['ArrowDown']) moveDir.z += 1;
 
-    if (this.virtualJoystickDir.x !== 0 || this.virtualJoystickDir.z !== 0) {
-      moveDir.x = this.virtualJoystickDir.x;
-      moveDir.z = this.virtualJoystickDir.z;
+      if (this.virtualJoystickDir.x !== 0 || this.virtualJoystickDir.z !== 0) {
+        moveDir.x = this.virtualJoystickDir.x;
+        moveDir.z = this.virtualJoystickDir.z;
+      }
+
+      if (moveDir.x !== 0 && moveDir.z !== 0) {
+        const len = Math.hypot(moveDir.x, moveDir.z);
+        moveDir.x /= len;
+        moveDir.z /= len;
+      }
+
+      this.player.update(dt, moveDir);
+    } else {
+      this.player.update(dt, { x: 0, z: 0 });
     }
-
-    if (moveDir.x !== 0 && moveDir.z !== 0) {
-      const len = Math.hypot(moveDir.x, moveDir.z);
-      moveDir.x /= len;
-      moveDir.z /= len;
-    }
-
-    this.player.update(dt, moveDir);
 
     // Gửi vị trí qua mạng nếu đang đánh Online
     if (this.isMultiplayer && (moveDir.x !== 0 || moveDir.z !== 0 || this.player.state !== 'idle')) {
