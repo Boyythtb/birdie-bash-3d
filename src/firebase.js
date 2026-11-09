@@ -50,8 +50,10 @@ export class FirebaseMultiplayer {
     this.moveListener = null;
     this.scoreListener = null;
     this.matchStarted = false;
-    this.lastHitTs = 0;
-    this.lastScoreTs = 0;
+    this.localHitSeq = 0;
+    this.localScoreSeq = 0;
+    this.lastProcessedHitId = null;
+    this.lastProcessedScoreId = null;
   }
 
   on(event, cb) {
@@ -177,8 +179,10 @@ export class FirebaseMultiplayer {
     if (!this.roomRef) return;
     this.cleanupListeners();
     this.matchStarted = false;
-    this.lastHitTs = Date.now() - 500;
-    this.lastScoreTs = Date.now() - 500;
+    this.localHitSeq = 0;
+    this.localScoreSeq = 0;
+    this.lastProcessedHitId = null;
+    this.lastProcessedScoreId = null;
 
     this.roomListener = onValue(this.roomRef, (snapshot) => {
       if (!snapshot.exists()) {
@@ -232,22 +236,22 @@ export class FirebaseMultiplayer {
       }
     });
 
-    // Lắng nghe cú đánh quả cầu (chỉ nhận cú đánh mới)
+    // Lắng nghe cú đánh quả cầu (chỉ nhận cú đánh mới theo hitId độc nhất, triệt tiêu lỗi lệch đồng hồ)
     this.shuttleListener = onValue(ref(db, `rooms/${this.currentRoomCode}/shuttle`), (snap) => {
       if (!snap.exists()) return;
       const hit = snap.val();
-      if (hit && hit.hitterSlot !== this.mySlot && hit.ts && hit.ts > this.lastHitTs) {
-        this.lastHitTs = hit.ts;
+      if (hit && hit.hitterSlot !== this.mySlot && hit.hitId && hit.hitId !== this.lastProcessedHitId) {
+        this.lastProcessedHitId = hit.hitId;
         this.emit('remoteHit', hit);
       }
     });
 
-    // Lắng nghe điểm số (chỉ nhận điểm số mới)
+    // Lắng nghe điểm số (chỉ nhận điểm số mới theo scoreId độc nhất)
     this.scoreListener = onValue(ref(db, `rooms/${this.currentRoomCode}/score`), (snap) => {
       if (!snap.exists()) return;
       const score = snap.val();
-      if (score && score.ts && score.ts > this.lastScoreTs) {
-        this.lastScoreTs = score.ts;
+      if (score && score.scoreId && score.scoreId !== this.lastProcessedScoreId) {
+        this.lastProcessedScoreId = score.scoreId;
         this.emit('remoteScore', score);
       }
     });
@@ -283,8 +287,11 @@ export class FirebaseMultiplayer {
   // 6. GỬI CÚ ĐÁNH CẦU
   sendHit(hitData) {
     if (!this.currentRoomCode || this.mySlot === null) return;
+    this.localHitSeq = (this.localHitSeq || 0) + 1;
+    const hitId = `${this.mySlot}_${this.localHitSeq}_${Date.now()}`;
     set(ref(db, `rooms/${this.currentRoomCode}/shuttle`), {
       ...hitData,
+      hitId,
       hitterSlot: this.mySlot,
       ts: Date.now()
     });
@@ -293,8 +300,11 @@ export class FirebaseMultiplayer {
   // 7. GỬI CẬP NHẬT ĐIỂM SỐ
   sendScore(scoreData) {
     if (!this.currentRoomCode) return;
+    this.localScoreSeq = (this.localScoreSeq || 0) + 1;
+    const scoreId = `${scoreData.scorerSlot}_${scoreData.slot0Score}_${scoreData.slot1Score}_${this.localScoreSeq}_${Date.now()}`;
     set(ref(db, `rooms/${this.currentRoomCode}/score`), {
       ...scoreData,
+      scoreId,
       ts: Date.now()
     });
   }
@@ -311,6 +321,10 @@ export class FirebaseMultiplayer {
   // 9. CHỦ PHÒNG BẮT ĐẦU TRẬN
   async startMatch() {
     if (!this.currentRoomCode) return;
+    this.localHitSeq = 0;
+    this.localScoreSeq = 0;
+    this.lastProcessedHitId = null;
+    this.lastProcessedScoreId = null;
     try {
       await remove(ref(db, `rooms/${this.currentRoomCode}/shuttle`));
       await remove(ref(db, `rooms/${this.currentRoomCode}/score`));

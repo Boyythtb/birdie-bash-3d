@@ -600,7 +600,7 @@ export class GameManager {
       targetNetY = 1.72;
     } else if (shotType === 'drop') {
       flightTime = 0.85 / speedMult;
-      targetNetY = 1.62; // Bay lướt sát mép trên của lưới
+      targetNetY = 1.78; // Bay lướt qua mép trên lưới an toàn, cắm dốc
     } else {
       flightTime = 1.20 / speedMult;
       targetNetY = 3.6;
@@ -618,7 +618,7 @@ export class GameManager {
     if (shotType === 'clear') {
       vy = Math.max(vy, 11.2 * speedMult);
     } else if (shotType === 'drop') {
-      vy = Math.max(vy, 4.2);
+      vy = Math.max(vy, 5.2);
     } else if (shotType === 'smash') {
       vy = THREE.MathUtils.clamp(vy, -5.5, 2.5); // Cắm dốc xuống uy lực chuẩn smash, rơi gọn gàng trong sân
     }
@@ -810,6 +810,10 @@ export class GameManager {
     const s = this.shuttlecock;
     if (!s.isAirborne) return;
 
+    // Trong Multiplayer: Người đánh cầu (hitter) là bên duy nhất quyết định quả cầu của mình có vướng lưới hay không.
+    // Tránh trường hợp lệch dt/lệch khung hình giữa 2 máy khiến máy nhận tự ý kết luận vướng lưới.
+    if (this.isMultiplayer && s.lastHitter === 'bot') return;
+
     const prevZ = s.position.z - s.velocity.z * 0.016;
     const currZ = s.position.z;
 
@@ -906,7 +910,7 @@ export class GameManager {
               if (this.state === 'RALLY') {
                 this.onPointScored('player', 'GIAO CẦU ĂN ĐIỂM TRỰC TIẾP! (ACE)');
               }
-            }, 750);
+            }, 2200);
             return;
           }
 
@@ -964,7 +968,7 @@ export class GameManager {
               if (this.state === 'RALLY') {
                 this.onPointScored('player', 'CẦU TRONG SÂN! (IN POINT)');
               }
-            }, 750);
+            }, 2200);
             return;
           }
           this.onPointScored('player', 'CẦU TRONG SÂN! (IN POINT)');
@@ -1373,7 +1377,7 @@ export class GameManager {
 
       // Xử lý bộ đệm thao tác (Buffered Action) để tự động tung đòn ngay khi cầu vào tầm
       if (this.bufferedAction) {
-        if (Date.now() - this.bufferedAction.time < 380) {
+        if (Date.now() - this.bufferedAction.time < 650) {
           const actionType = (this.bufferedAction.type === 'smart') ? this.resolveContextualShotType() : this.bufferedAction.type;
           if (this.canHitShuttle(actionType)) {
             this.executePlayerShot(actionType);
@@ -1385,16 +1389,16 @@ export class GameManager {
       }
 
       // 3. NAM CHÂM HÚT VỊ TRÍ (Magnetic Step Assist)
-      // Khi cầu bay về phía sân người chơi, chỉ hỗ trợ vi chỉnh nhẹ khi người chơi ĐÃ CHẠY ĐẾN GẦN (dưới 1.25m)
+      // Khi cầu bay về phía sân người chơi, chỉ hỗ trợ vi chỉnh nhẹ khi người chơi ĐÃ CHẠY ĐẾN GẦN (dưới 1.75m)
       if (this.shuttlecock.isAirborne && this.shuttlecock.velocity.z > 0 && this.shuttlecock.position.z > 0.5) {
         const pPos = this.player.group.position;
         const sPos = this.shuttlecock.position;
         const distToBall = Math.hypot(pPos.x - sPos.x, pPos.z - sPos.z);
-        if (distToBall < 1.25 && sPos.y < 2.5) {
+        if (distToBall < 1.75 && sPos.y < 2.8) {
           const pullTargetX = sPos.x + (sPos.x > pPos.x ? -0.28 : 0.28);
           const pullTargetZ = sPos.z + 0.22;
-          pPos.x = THREE.MathUtils.lerp(pPos.x, THREE.MathUtils.clamp(pullTargetX, -2.15, 2.15), 0.06 * dt * 60);
-          pPos.z = THREE.MathUtils.lerp(pPos.z, THREE.MathUtils.clamp(pullTargetZ, 1.15, 5.75), 0.06 * dt * 60);
+          pPos.x = THREE.MathUtils.lerp(pPos.x, THREE.MathUtils.clamp(pullTargetX, -2.15, 2.15), 0.08 * dt * 60);
+          pPos.z = THREE.MathUtils.lerp(pPos.z, THREE.MathUtils.clamp(pullTargetZ, 1.15, 5.75), 0.08 * dt * 60);
         }
       }
     }

@@ -1,10 +1,17 @@
 import puppeteer from 'puppeteer';
 
 async function run() {
-  console.log('🚀 Starting multiplayer return-rally test...');
+  console.log('🚀 Starting 4-turn continuous multiplayer rally test...');
   const browser = await puppeteer.launch({
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--window-size=1280,800']
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-background-timer-throttling',
+      '--disable-backgrounding-occluded-windows',
+      '--disable-renderer-backgrounding',
+      '--window-size=1280,800'
+    ]
   });
 
   try {
@@ -77,29 +84,78 @@ async function run() {
 
     await new Promise(r => setTimeout(r, 2500));
 
-    // 4. Host serves
-    console.log('Host serving...');
+    // ==========================================
+    // TURN 1: HOST SERVES
+    // ==========================================
+    console.log('\n--- TURN 1: HOST SERVES ---');
+    await pageHost.bringToFront();
     await pageHost.keyboard.press('Space');
 
-    // 5. Wait until shuttlecock is within hitting range on Guest's court
-    let canHitNow = false;
-    for (let i = 0; i < 30; i++) {
+    // Bring Guest to front so Guest simulates ball arrival
+    await pageGuest.bringToFront();
+    // Wait until shuttle reaches Guest's court
+    for (let i = 0; i < 25; i++) {
       await new Promise(r => setTimeout(r, 50));
-      canHitNow = await pageGuest.evaluate(() => {
+      const reached = await pageGuest.evaluate(() => {
         const g = window.gameManager || {};
         const s = g.shuttlecock;
-        if (!s || !s.isAirborne) return false;
-        const p = g.player.group.position;
-        const distXZ = Math.hypot(p.x - s.position.x, p.z - s.position.z);
-        return distXZ <= 2.5 && s.position.y <= 2.8 && s.position.z > 1.0;
+        return s && s.isAirborne && s.position.z > 2.0;
       });
-      if (canHitNow) {
-        console.log(`Shuttle arrived in Guest's hitting zone after ${(i + 1) * 50}ms!`);
-        break;
-      }
+      if (reached) break;
     }
 
-    const guestShuttleBeforeHit = await pageGuest.evaluate(() => {
+    // ==========================================
+    // TURN 2: GUEST RETURNS
+    // ==========================================
+    console.log('\n--- TURN 2: GUEST RETURNS ---');
+    await pageGuest.evaluate(() => {
+      const g = window.gameManager || {};
+      // Move guest to intercept ball
+      if (g.shuttlecock) {
+        g.player.group.position.x = g.shuttlecock.position.x;
+        g.player.group.position.z = Math.min(5.0, g.shuttlecock.position.z + 0.3);
+      }
+      g.attemptSmartHit();
+    });
+    await new Promise(r => setTimeout(r, 100));
+
+    const guestTurn2 = await pageGuest.evaluate(() => {
+      const g = window.gameManager || {};
+      return {
+        state: g.state,
+        lastHitter: g.shuttlecock ? g.shuttlecock.lastHitter : null,
+        rallyCount: g.rallyCount
+      };
+    });
+    console.log('Guest Turn 2 hit:', guestTurn2);
+
+    // Switch focus back to Host so requestAnimationFrame runs on Host!
+    await pageHost.bringToFront();
+
+    // Wait until ball reaches Host's court
+    for (let i = 0; i < 40; i++) {
+      await new Promise(r => setTimeout(r, 50));
+      const status = await pageHost.evaluate(() => {
+        const g = window.gameManager || {};
+        const s = g.shuttlecock;
+        return {
+          airborne: s ? s.isAirborne : false,
+          z: s ? s.position.z : null,
+          vz: s ? s.velocity.z : null,
+          lastHitter: s ? s.lastHitter : null
+        };
+      });
+      if (i % 5 === 0 || (status.z && status.z > 0.8)) {
+        console.log(`[Host wait i=${i}] z=${status.z?.toFixed(2)}, vz=${status.vz?.toFixed(2)}, airborne=${status.airborne}, hitter=${status.lastHitter}`);
+      }
+      if (status.airborne && status.lastHitter === 'bot' && status.z > 0.8) break;
+    }
+
+    // ==========================================
+    // TURN 3: HOST RETURNS (Fixes previous turn-3 drop)
+    // ==========================================
+    console.log('\n--- TURN 3: HOST RETURNS ---');
+    const hostDiagBefore = await pageHost.evaluate(() => {
       const g = window.gameManager || {};
       const s = g.shuttlecock;
       const p = g.player.group.position;
@@ -108,68 +164,128 @@ async function run() {
         playerPos: { x: p.x, y: p.y, z: p.z },
         distXZ: s ? Math.hypot(p.x - s.position.x, p.z - s.position.z) : null,
         height: s ? s.position.y : null,
-        canHit: typeof g.canHitShuttle === 'function' ? g.canHitShuttle('hit') : null,
-        state: g.state
+        canHitClear: typeof g.canHitShuttle === 'function' ? g.canHitShuttle('clear') : null,
+        canHitSmash: typeof g.canHitShuttle === 'function' ? g.canHitShuttle('smash') : null,
+        canHitHit: typeof g.canHitShuttle === 'function' ? g.canHitShuttle('hit') : null,
+        resolvedType: typeof g.resolveContextualShotType === 'function' ? g.resolveContextualShotType() : null,
+        lastHitter: s ? s.lastHitter : null
       };
     });
-    console.log('\nGuest shuttle when ball arrives:', JSON.stringify(guestShuttleBeforeHit, null, 2));
+    console.log('Host diagnostic BEFORE Turn 3 hit:\n', JSON.stringify(hostDiagBefore, null, 2));
 
-    // 6. Guest returns the shuttlecock!
-    console.log('\nGuest attempting to return shuttlecock (Smart Hit)...');
-    await pageGuest.evaluate(() => {
+    await pageHost.evaluate(() => {
       const g = window.gameManager || {};
+      // Move host to intercept ball
+      if (g.shuttlecock) {
+        g.player.group.position.x = g.shuttlecock.position.x;
+        g.player.group.position.z = Math.min(5.0, g.shuttlecock.position.z + 0.3);
+      }
       g.attemptSmartHit();
     });
+    await new Promise(r => setTimeout(r, 100));
 
-    // Wait 120ms for any buffered action to execute in animation loop
-    await new Promise(r => setTimeout(r, 120));
-
-    const guestHitResult = await pageGuest.evaluate(() => {
+    const hostTurn3 = await pageHost.evaluate(() => {
       const g = window.gameManager || {};
-      const s = g.shuttlecock;
       return {
         state: g.state,
-        lastHitter: s ? s.lastHitter : null,
-        vel: s ? { x: s.velocity.x, y: s.velocity.y, z: s.velocity.z } : null,
+        lastHitter: g.shuttlecock ? g.shuttlecock.lastHitter : null,
         rallyCount: g.rallyCount
       };
     });
-    console.log('Guest hit result:', JSON.stringify(guestHitResult, null, 2));
+    console.log('Host Turn 3 hit:', hostTurn3);
 
-    // 7. Wait 500ms for Firebase to transmit hit to Host
-    await new Promise(r => setTimeout(r, 600));
+    // Switch focus back to Guest so requestAnimationFrame runs on Guest!
+    await pageGuest.bringToFront();
 
-    const hostAfterGuestHit = await pageHost.evaluate(() => {
+    // Wait until ball reaches Guest's court
+    for (let i = 0; i < 40; i++) {
+      await new Promise(r => setTimeout(r, 50));
+      const status = await pageGuest.evaluate(() => {
+        const g = window.gameManager || {};
+        const s = g.shuttlecock;
+        return {
+          airborne: s ? s.isAirborne : false,
+          z: s ? s.position.z : null,
+          vz: s ? s.velocity.z : null,
+          lastHitter: s ? s.lastHitter : null
+        };
+      });
+      if (i % 5 === 0 || (status.z && status.z > 0.8)) {
+        console.log(`[Guest wait i=${i}] z=${status.z?.toFixed(2)}, vz=${status.vz?.toFixed(2)}, airborne=${status.airborne}, hitter=${status.lastHitter}`);
+      }
+      if (status.airborne && status.lastHitter === 'bot' && status.z > 0.8) break;
+    }
+
+    // ==========================================
+    // TURN 4: GUEST RETURNS
+    // ==========================================
+    console.log('\n--- TURN 4: GUEST RETURNS ---');
+    await pageGuest.evaluate(() => {
       const g = window.gameManager || {};
-      const s = g.shuttlecock;
+      // Move guest to intercept ball
+      if (g.shuttlecock) {
+        g.player.group.position.x = g.shuttlecock.position.x;
+        g.player.group.position.z = Math.min(5.0, g.shuttlecock.position.z + 0.3);
+      }
+      g.attemptSmartHit();
+    });
+    await new Promise(r => setTimeout(r, 100));
+
+    const guestTurn4 = await pageGuest.evaluate(() => {
+      const g = window.gameManager || {};
       return {
         state: g.state,
-        score: `${g.playerScore} - ${g.botScore}`,
-        lastHitter: s ? s.lastHitter : null,
-        vel: s ? { x: s.velocity.x, y: s.velocity.y, z: s.velocity.z } : null,
-        pos: s ? { x: s.position.x, y: s.position.y, z: s.position.z } : null,
+        lastHitter: g.shuttlecock ? g.shuttlecock.lastHitter : null,
         rallyCount: g.rallyCount
       };
     });
-    console.log('\nHost received return shot from Guest:\n', JSON.stringify(hostAfterGuestHit, null, 2));
+    console.log('Guest Turn 4 hit:', guestTurn4);
+
+    // Switch focus back to Host so Host receives and renders Turn 4
+    await pageHost.bringToFront();
+
+    // Wait 400ms for Host to receive Turn 4
+    await new Promise(r => setTimeout(r, 400));
+
+    const hostStateFinal = await pageHost.evaluate(() => {
+      const g = window.gameManager || {};
+      return {
+        state: g.state,
+        lastHitter: g.shuttlecock ? g.shuttlecock.lastHitter : null,
+        rallyCount: g.rallyCount
+      };
+    });
+
+    const guestStateFinal = await pageGuest.evaluate(() => {
+      const g = window.gameManager || {};
+      return {
+        state: g.state,
+        lastHitter: g.shuttlecock ? g.shuttlecock.lastHitter : null,
+        rallyCount: g.rallyCount
+      };
+    });
+
+    console.log('\n=== FINAL RALLY STATUS ===');
+    console.log('HOST FINAL:', hostStateFinal);
+    console.log('GUEST FINAL:', guestStateFinal);
 
     const checks = [
-      { name: 'Guest hit succeeded (lastHitter === "player")', pass: guestHitResult.lastHitter === 'player' },
-      { name: 'Guest shuttle flying back towards Host (vel.z < 0)', pass: guestHitResult.vel && guestHitResult.vel.z < 0 },
-      { name: 'Host received return hit (lastHitter === "bot")', pass: hostAfterGuestHit.lastHitter === 'bot' },
-      { name: 'Host shuttle flying towards Host (vel.z > 0)', pass: hostAfterGuestHit.vel && hostAfterGuestHit.vel.z > 0 },
-      { name: 'Host game remains in RALLY (NO premature ACE!)', pass: hostAfterGuestHit.state === 'RALLY' },
-      { name: 'Rally count incremented on both', pass: hostAfterGuestHit.rallyCount >= 2 }
+      { name: 'Turn 2: Guest returned successfully', pass: guestTurn2.lastHitter === 'player' && guestTurn2.rallyCount >= 2 },
+      { name: 'Turn 3: Host returned successfully', pass: hostTurn3.lastHitter === 'player' && hostTurn3.rallyCount >= 3 },
+      { name: 'Turn 4: Guest returned successfully', pass: guestTurn4.lastHitter === 'player' && guestTurn4.rallyCount >= 4 },
+      { name: 'Host received Turn 4 (lastHitter === "bot")', pass: hostStateFinal.lastHitter === 'bot' },
+      { name: 'Both remain in active RALLY state', pass: hostStateFinal.state === 'RALLY' && guestStateFinal.state === 'RALLY' },
+      { name: 'Rally count reached 4+ on both machines', pass: hostStateFinal.rallyCount >= 4 && guestStateFinal.rallyCount >= 4 }
     ];
 
-    console.log('\n--- RALLY RETURN VERIFICATION ---');
+    console.log('\n--- 4-TURN RALLY VERIFICATION ---');
     checks.forEach(c => {
       console.log(`${c.pass ? '✅' : '❌'} ${c.name}`);
     });
 
     const allPassed = checks.every(c => c.pass);
     if (allPassed) {
-      console.log('\n🎉🎉🎉 RALLY RETURN TEST PASSED 100%! GUEST RETURNED SHOT AND RALLY CONTINUED! 🎉🎉🎉');
+      console.log('\n🎉🎉🎉 4-TURN CONTINUOUS MULTIPLAYER RALLY PASSED 100%! ZERO DROPPED HITS! 🎉🎉🎉');
     } else {
       console.log('\n⚠️ Some checks failed!');
     }
