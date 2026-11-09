@@ -8,15 +8,15 @@ import { BotAI } from './ai.js';
 import { GameManager } from './game.js';
 import { setupUI } from './ui.js';
 
-// Khởi tạo Three.js Scene với nền nhà thi đấu BWF World Tour rực rỡ, độ tương phản cao
+// Khởi tạo Three.js Scene với nền Pastel Pink ấm áp chuẩn Birdie Bash
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0a0f1d);
-scene.fog = new THREE.FogExp2(0x0a0f1d, 0.007);
+scene.background = new THREE.Color(0xfdf2f8);
+scene.fog = new THREE.FogExp2(0xfdf2f8, 0.006);
 
-// GÓC CAMERA TRUYỀN HÌNH BAO QUÁT TOÀN DIỆN (Full Court Broadcast Cam)
-const camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.1, 100);
-camera.position.set(0, 7.8, 14.0);
-camera.lookAt(0, 0.4, 0.4);
+// GÓC CAMERA ISOMETRIC 3/4 ĐẶC TRƯNG CHUẨN BIRDIE BASH
+const camera = new THREE.PerspectiveCamera(46, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(-7.2, 10.5, 13.2);
+camera.lookAt(1.0, 0.4, -0.5);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -24,15 +24,15 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.18;
+renderer.toneMappingExposure = 1.15;
 
-// 1. Hệ thống chiếu sáng nhà thi đấu Olympic rực rỡ
-const hemiLight = new THREE.HemisphereLight(0xffffff, 0x1e293b, 1.25);
+// 1. Hệ thống chiếu sáng ánh nắng tự nhiên ấm áp
+const hemiLight = new THREE.HemisphereLight(0xfffbeb, 0xfce7f3, 1.25);
 hemiLight.position.set(0, 24, 0);
 scene.add(hemiLight);
 
-const mainLight = new THREE.DirectionalLight(0xffffff, 2.1);
-mainLight.position.set(6, 20, 8);
+const mainLight = new THREE.DirectionalLight(0xffedd5, 1.8);
+mainLight.position.set(10, 18, 6);
 mainLight.castShadow = true;
 mainLight.shadow.mapSize.width = 2048;
 mainLight.shadow.mapSize.height = 2048;
@@ -45,35 +45,35 @@ mainLight.shadow.camera.bottom = -20;
 mainLight.shadow.bias = -0.0004;
 scene.add(mainLight);
 
-const fillLight = new THREE.DirectionalLight(0x38bdf8, 0.85);
-fillLight.position.set(-8, 14, -8);
+const fillLight = new THREE.DirectionalLight(0xbae6fd, 0.65);
+fillLight.position.set(-8, 12, -8);
 scene.add(fillLight);
 
 // 2. Thêm sân cầu lông
 const court = createCourt();
 scene.add(court.mesh);
 
-// 3. Khởi tạo Nhân vật Người chơi (Player ở Z > 0, nhìn đối diện về phía lưới)
+// 3. Khởi tạo Nhân vật Người chơi (Player ở Z > 0, chú chim vàng chibi đáng yêu)
 const player = new Character({
-  color: 0xf59e0b,
+  color: 0xfde047,
   secondaryColor: 0xffedd5,
-  jerseyColor: 0x0284c7,
-  jerseyNumber: '7',
-  name: 'Shiba Dũng Cảm',
+  jerseyColor: 0x38bdf8,
+  jerseyNumber: '1',
+  name: 'Birdie Vàng',
   isPlayer: true,
-  initialPos: new THREE.Vector3(0, 0, 4.5)
+  initialPos: new THREE.Vector3(0.5, 0, 4.2)
 });
 scene.add(player.group);
 
-// 4. Khởi tạo Đối thủ Máy (Bot ở Z < 0, nhìn đối diện về phía người chơi)
+// 4. Khởi tạo Đối thủ Máy (Bot ở Z < 0, chú chim tím pastel)
 const bot = new Character({
-  color: 0x1e293b,
-  secondaryColor: 0xffffff,
-  jerseyColor: 0xef4444,
-  jerseyNumber: '10',
-  name: 'Kuro Neko',
+  color: 0xc084fc,
+  secondaryColor: 0xfdf4ff,
+  jerseyColor: 0xf472b6,
+  jerseyNumber: '2',
+  name: 'Birdie Tím',
   isPlayer: false,
-  initialPos: new THREE.Vector3(0, 0, -4.5)
+  initialPos: new THREE.Vector3(-0.8, 0, -4.2)
 });
 scene.add(bot.group);
 
@@ -133,17 +133,17 @@ container.appendChild(renderer.domElement);
 function updateCameraAspect() {
   const isPortrait = window.innerWidth < window.innerHeight;
   camera.aspect = window.innerWidth / window.innerHeight;
-  camera.fov = isPortrait ? 58 : 48;
+  camera.fov = isPortrait ? 56 : 46;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
   if (isPortrait) {
-    gameManager.defaultCamPos.set(0, 9.2, 16.5);
-    gameManager.defaultCamLookAt.set(0, 0.4, 0.5);
+    gameManager.defaultCamPos.set(-5.8, 12.2, 14.8);
+    gameManager.defaultCamLookAt.set(1.0, 0.4, -0.4);
   } else {
-    gameManager.defaultCamPos.set(0, 7.8, 14.0);
-    gameManager.defaultCamLookAt.set(0, 0.4, 0.4);
+    gameManager.defaultCamPos.set(-7.2, 10.5, 13.2);
+    gameManager.defaultCamLookAt.set(1.0, 0.4, -0.5);
   }
 }
 
