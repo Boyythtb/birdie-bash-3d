@@ -187,6 +187,12 @@ export class GameManager {
       this.botScore = data.team2Score;
       sounds.playWhistle();
       this.notifyUI('ĐIỂM SỐ ONLINE!', data.reason || '', 'info');
+
+      if (this.playerScore >= this.targetScore || this.botScore >= this.targetScore) {
+        setTimeout(() => {
+          this.gameOver(this.playerScore >= this.targetScore ? 'player' : 'bot');
+        }, 500);
+      }
     });
   }
 
@@ -645,7 +651,7 @@ export class GameManager {
     if (this.playerScore >= this.targetScore || this.botScore >= this.targetScore) {
       setTimeout(() => {
         this.gameOver(this.playerScore >= this.targetScore ? 'player' : 'bot');
-      }, 1500);
+      }, 500);
     } else {
       setTimeout(() => {
         this.setupServe();
@@ -995,11 +1001,14 @@ export class GameManager {
     // Chuyển đổi góc camera mượt mà:
     // Khi ở Màn hình chờ (MENU) hoặc lúc hết game (GAMEOVER) -> Quay về màn hình chéo 3/4 Isometric đặc trưng
     // Khi đang trong trận đấu (SERVE, RALLY, POINT) -> Camera sau lưng người chơi nhìn thẳng như Màn 2
-    const targetCamPos = (this.state === 'MENU' || this.state === 'GAMEOVER') ? this.lobbyCamPos : this.matchCamPos;
-    const targetLookAt = (this.state === 'MENU' || this.state === 'GAMEOVER') ? this.lobbyCamLookAt : this.matchCamLookAt;
+    const isLobby = (this.state === 'MENU' || this.state === 'GAMEOVER');
+    const targetCamPos = isLobby ? this.lobbyCamPos : this.matchCamPos;
+    const targetLookAt = isLobby ? this.lobbyCamLookAt : this.matchCamLookAt;
 
-    this.currentCamPos.lerp(targetCamPos, 0.08);
-    this.currentCamLookAt.lerp(targetLookAt, 0.08);
+    // Tốc độ nội suy mượt mà phụ thuộc dt (mượt mà 100% trên cả 60Hz, 120Hz ProMotion và thiết bị yếu)
+    const camLerpFactor = 1.0 - Math.exp(-5.0 * dt);
+    this.currentCamPos.lerp(targetCamPos, camLerpFactor);
+    this.currentCamLookAt.lerp(targetLookAt, camLerpFactor);
 
     if (this.shakeIntensity > 0) {
       this.camera.position.x = this.currentCamPos.x + (Math.random() - 0.5) * this.shakeIntensity;

@@ -192,6 +192,14 @@ function updateCameraAspect() {
     gameManager.matchCamPos.set(0, 8.0, 13.4);
     gameManager.matchCamLookAt.set(0, 0.6, -0.8);
   }
+
+  // Khởi tạo hoặc khi đang ở sảnh chờ: Đồng bộ ngay lập tức để góc nhìn chuẩn xác 100% không bị lệch
+  if (gameManager.state === 'MENU') {
+    gameManager.currentCamPos.copy(gameManager.lobbyCamPos);
+    gameManager.currentCamLookAt.copy(gameManager.lobbyCamLookAt);
+    camera.position.copy(gameManager.lobbyCamPos);
+    camera.lookAt(gameManager.lobbyCamLookAt);
+  }
 }
 
 updateCameraAspect();

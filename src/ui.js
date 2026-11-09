@@ -1030,6 +1030,16 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
     }
   });
 
+  network.on('matchStart', (room) => {
+    modalOnline.classList.add('hidden');
+    document.getElementById('main-menu').classList.add('hidden');
+    document.getElementById('hud').classList.remove('hidden');
+    const inGameControls = document.getElementById('in-game-controls');
+    if (inGameControls) inGameControls.classList.remove('hidden');
+    const mode = (room && room.mode === '2v2') ? 'online-2v2' : 'online-1v1';
+    gameManager.startGame('pro', mode, network.yourSlot || 0);
+  });
+
   // Nút sao chép riêng mã phòng
   const btnCopyCodeOnly = document.getElementById('btn-copy-code-only');
   if (btnCopyCodeOnly) {
@@ -1269,7 +1279,11 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
 
   document.getElementById('btn-play-again').addEventListener('click', () => {
     document.getElementById('game-over-modal').classList.add('hidden');
-    gameManager.startGame(selectedDiff);
+    document.getElementById('hud').classList.remove('hidden');
+    const inGameControls = document.getElementById('in-game-controls');
+    if (inGameControls) inGameControls.classList.remove('hidden');
+    const mode = gameManager.isDoubles ? 'bot-2v2' : (gameManager.isMultiplayer ? gameManager.gameMode : 'bot');
+    gameManager.startGame(selectedDiff, mode, gameManager.multiplayerSlot || 0);
   });
 
   document.getElementById('btn-back-to-lobby').addEventListener('click', () => {
