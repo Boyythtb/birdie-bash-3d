@@ -34,8 +34,12 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
       </div>
     </div>
 
-    <!-- 2. HUD TRONG TRẬN ĐẤU (COZY MATCH HUD) -->
+    <!-- 2. HUD TRONG TRẬN ĐẤU (COZY MATCH HUD - CĂN GIỮA ĐỘC LẬP & CÂN ĐỐI 100%) -->
     <div id="hud" class="hud-top-bar hidden">
+      <!-- NÚT PHÍM TẮT (CHỈ HIỆN TRÊN DESKTOP) -->
+      <button id="btn-toggle-hints" class="hud-ctrl-btn hud-btn-hints" title="Hướng dẫn phím tắt">⌨️ Phím</button>
+
+      <!-- VIÊN THUỐC TỶ SỐ TRUNG TÂM (CHÍNH GIỮA TUYỆT ĐỐI) -->
       <div class="match-hud-pill">
         <div class="hud-player">
           <div class="hud-avatar-box">
@@ -73,8 +77,8 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
         </div>
       </div>
 
-      <button id="btn-toggle-hints" class="hud-hint-btn" title="Hướng dẫn điều khiển">⌨️ Phím</button>
-      <button id="btn-pause-game" class="hud-hint-btn btn-exit" title="Về màn hình chính">✕ Rời trận</button>
+      <!-- NÚT THOÁT TRẬN ĐỘC LẬP TINH TẾ GÓC PHẢI -->
+      <button id="btn-pause-game" class="hud-ctrl-btn hud-btn-exit" title="Về màn hình chính">✕</button>
     </div>
 
     <!-- POPUP THÔNG BÁO TIMING & GHI ĐIỂM -->
@@ -405,9 +409,9 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
       </div>
     </div>
 
-    <!-- MODAL ĐẤU MẠNG ONLINE (TÁCH BIỆT RÕ RÀNG: SẢNH CHỌN & PHÒNG CHỜ) -->
+    <!-- MODAL ĐẤU MẠNG ONLINE (THIẾT KẾ ĐẲNG CẤP, CÂN ĐỐI CHUẨN APPLE UI) -->
     <div id="modal-online" class="modal-overlay hidden">
-      <!-- VIEW 1: SẢNH CHỌN CHẾ ĐỘ (MẶC ĐỊNH KHI BẤM ĐẤU MẠNG ONLINE) -->
+      <!-- VIEW 1: SẢNH CHỌN CHẾ ĐỘ -->
       <div id="online-view-lobby" class="bb-modal-box online-modal-box">
         <div class="bb-modal-header">
           <div class="header-with-badge">
@@ -422,35 +426,52 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
 
         <div class="online-options-stack">
           <!-- LỰA CHỌN 1: GHÉP NHANH -->
-          <div class="online-opt-card" id="card-quick-match">
-            <div class="opt-icon-circle yellow">⚡</div>
-            <div class="opt-text">
-              <h4>Ghép Trận Nhanh</h4>
-              <p>Tự động tìm đối thủ đang trực tuyến để vào sân ngay</p>
+          <div class="online-action-card" id="card-quick-match" role="button" tabindex="0">
+            <div class="online-card-icon-box yellow">⚡</div>
+            <div class="online-card-body">
+              <div class="online-card-title-row">
+                <h4 class="online-card-title">Ghép Trận Nhanh</h4>
+                <span class="online-badge yellow">Tự động</span>
+              </div>
+              <p class="online-card-desc">Tự động tìm đối thủ online và vào sân ngay</p>
             </div>
-            <button id="btn-opt-quick" class="bb-btn-primary sm">GHÉP NGAY</button>
+            <button id="btn-opt-quick" class="online-card-btn yellow" aria-label="Ghép nhanh">
+              <span>GHÉP</span>
+              <span class="btn-arrow">➜</span>
+            </button>
           </div>
 
           <!-- LỰA CHỌN 2: TẠO PHÒNG RIÊNG -->
-          <div class="online-opt-card" id="card-create-room">
-            <div class="opt-icon-circle pink">🏠</div>
-            <div class="opt-text">
-              <h4>Tạo Phòng Thi Đấu</h4>
-              <p>Nhận mã phòng 4 chữ & link 1-chạm gửi Zalo/Messenger</p>
+          <div class="online-action-card" id="card-create-room" role="button" tabindex="0">
+            <div class="online-card-icon-box pink">🏠</div>
+            <div class="online-card-body">
+              <div class="online-card-title-row">
+                <h4 class="online-card-title">Tạo Phòng Thi Đấu</h4>
+                <span class="online-badge pink">Phòng riêng</span>
+              </div>
+              <p class="online-card-desc">Nhận mã 4 chữ & link 1-chạm gửi bạn bè</p>
             </div>
-            <button id="btn-opt-create" class="bb-btn-primary sm pink">TẠO PHÒNG</button>
+            <button id="btn-opt-create" class="online-card-btn pink" aria-label="Tạo phòng">
+              <span>TẠO</span>
+              <span class="btn-arrow">➜</span>
+            </button>
           </div>
 
           <!-- LỰA CHỌN 3: NHẬP MÃ PHÒNG -->
-          <div class="online-opt-card join-card">
-            <div class="opt-icon-circle blue">🔑</div>
-            <div class="opt-text">
-              <h4>Vào Bằng Mã Phòng</h4>
-              <p>Nhập mã 4 chữ do bạn bè gửi để vào thẳng phòng đấu</p>
+          <div class="online-action-card join-code-card">
+            <div class="join-header-row">
+              <div class="online-card-icon-box blue">🔑</div>
+              <div class="online-card-body">
+                <div class="online-card-title-row">
+                  <h4 class="online-card-title">Vào Bằng Mã Phòng</h4>
+                  <span class="online-badge blue">Mã 4 ký tự</span>
+                </div>
+                <p class="online-card-desc">Nhập mã do bạn bè chia sẻ để tham gia</p>
+              </div>
             </div>
-            <div class="join-input-group">
-              <input type="text" id="room-code-input" class="room-input-clean" placeholder="Mã 4 chữ..." maxlength="4" />
-              <button id="btn-join-room" class="btn-join-clean">VÀO PHÒNG</button>
+            <div class="join-input-bar">
+              <input type="text" id="room-code-input" class="room-code-input" placeholder="NHẬP MÃ 4 CHỮ..." maxlength="6" autocomplete="off" autocorrect="off" autocapitalize="characters" />
+              <button id="btn-join-room" class="btn-join-action">VÀO PHÒNG ➜</button>
             </div>
           </div>
         </div>
@@ -474,7 +495,7 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
           <span class="copy-link-icon">🔗</span>
           <div class="copy-link-text">
             <span class="copy-link-main">SAO CHÉP LINK MỜI BẠN BÈ</span>
-            <span class="copy-link-sub">Bấm 1 chạm để gửi link qua Zalo / Messenger cho bạn bè</span>
+            <span class="copy-link-sub">Bấm 1 chạm để gửi link qua Zalo / Messenger</span>
           </div>
           <span class="copy-link-tag">1-CHẠM 📋</span>
         </button>
@@ -824,7 +845,23 @@ export function setupUI(gameManager, botAI, onStartGame, onCharacterChange) {
   });
 
   // 3 LỰA CHỌN TRONG SẢNH ĐẤU MẠNG ONLINE
-  const btnOptQuick = document.getElementById('btn-opt-quick');
+  
+  // Click vào card cũng kích hoạt ghép nhanh / tạo phòng
+  const cardQuick = document.getElementById('card-quick-match');
+  if (cardQuick) {
+    cardQuick.addEventListener('click', (e) => {
+      if (e.target.closest('#btn-opt-quick')) return;
+      if (btnOptQuick) btnOptQuick.click();
+    });
+  }
+  const cardCreate = document.getElementById('card-create-room');
+  if (cardCreate) {
+    cardCreate.addEventListener('click', (e) => {
+      if (e.target.closest('#btn-opt-create')) return;
+      if (btnOptCreate) btnOptCreate.click();
+    });
+  }
+const btnOptQuick = document.getElementById('btn-opt-quick');
   if (btnOptQuick) {
     btnOptQuick.addEventListener('click', () => {
       network.quickMatch('1v1', playerName, selectedChar.avatar, selectedChar.color);
