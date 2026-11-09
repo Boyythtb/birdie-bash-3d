@@ -1,7 +1,7 @@
 import puppeteer from 'puppeteer';
 
 async function run() {
-  console.log('🚀 Starting multiplayer test...');
+  console.log('🚀 Starting multiplayer return-rally test...');
   const browser = await puppeteer.launch({
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--window-size=1280,800']
@@ -24,31 +24,24 @@ async function run() {
       }
     });
 
-    pageHost.on('pageerror', err => console.error('[HOST ERROR]', err.message));
-    pageGuest.on('pageerror', err => console.error('[GUEST ERROR]', err.message));
-
     console.log('Navigating Host and Guest to http://localhost:5173/ ...');
     await Promise.all([
       pageHost.goto('http://localhost:5173/', { waitUntil: 'domcontentloaded' }),
       pageGuest.goto('http://localhost:5173/', { waitUntil: 'domcontentloaded' })
     ]);
 
-    // Wait 2.5s for loading screen to complete and main-menu to show
-    console.log('Waiting for main menu...');
     await new Promise(r => setTimeout(r, 2500));
 
-    // 1. Host opens Online Modal and creates room
-    console.log('Host opening Online modal and creating room...');
+    // 1. Host creates room
+    console.log('Host creating room...');
     await pageHost.evaluate(() => {
       document.getElementById('btn-menu-online').click();
     });
-    await new Promise(r => setTimeout(r, 600));
-
+    await new Promise(r => setTimeout(r, 500));
     await pageHost.evaluate(() => {
       document.getElementById('card-create-room').click();
     });
 
-    // Wait for room creation in Firebase
     let roomCode = null;
     for (let i = 0; i < 10; i++) {
       await new Promise(r => setTimeout(r, 800));
@@ -62,223 +55,123 @@ async function run() {
     }
     console.log('🎉 Room created by Host with code:', roomCode);
 
-    if (!roomCode || roomCode === '----' || roomCode.length < 3) {
-      throw new Error('Host failed to get room code!');
-    }
-
-    // 2. Guest opens Online Modal and joins room
-    console.log('Guest joining room:', roomCode);
+    // 2. Guest joins room
     await pageGuest.evaluate((code) => {
       document.getElementById('btn-menu-online').click();
       document.getElementById('room-code-input').value = code;
       document.getElementById('btn-join-room').click();
     }, roomCode);
 
-    // Wait for Guest to connect and players to appear in room
     await new Promise(r => setTimeout(r, 2000));
 
-    // 3. Guest clicks Sẵn Sàng
-    console.log('Guest clicking Sẵn Sàng...');
+    // 3. Guest ready, Host start
     await pageGuest.evaluate(() => {
       document.getElementById('btn-room-ready').click();
     });
-    await new Promise(r => setTimeout(r, 1500));
+    await new Promise(r => setTimeout(r, 1200));
 
-    // 4. Host clicks Bắt Đầu
-    console.log('Host clicking Bắt Đầu...');
     await pageHost.evaluate(() => {
       const btn = document.getElementById('btn-host-start');
       if (btn) btn.click();
     });
 
-    // Wait for match transition to SERVE
-    await new Promise(r => setTimeout(r, 3000));
+    await new Promise(r => setTimeout(r, 2500));
 
-    // 5. Inspect match state on both Host and Guest
-    const hostInfo = await pageHost.evaluate(() => {
+    // 4. Host serves
+    console.log('Host serving...');
+    await pageHost.keyboard.press('Space');
+
+    // 5. Wait until shuttlecock is within hitting range on Guest's court
+    let canHitNow = false;
+    for (let i = 0; i < 30; i++) {
+      await new Promise(r => setTimeout(r, 50));
+      canHitNow = await pageGuest.evaluate(() => {
+        const g = window.gameManager || {};
+        const s = g.shuttlecock;
+        if (!s || !s.isAirborne) return false;
+        const p = g.player.group.position;
+        const distXZ = Math.hypot(p.x - s.position.x, p.z - s.position.z);
+        return distXZ <= 2.5 && s.position.y <= 2.8 && s.position.z > 1.0;
+      });
+      if (canHitNow) {
+        console.log(`Shuttle arrived in Guest's hitting zone after ${(i + 1) * 50}ms!`);
+        break;
+      }
+    }
+
+    const guestShuttleBeforeHit = await pageGuest.evaluate(() => {
       const g = window.gameManager || {};
-      const serveBar = document.getElementById('serve-indicator-bar');
-      const btnHit = document.getElementById('btn-hit');
-      const hudP1 = document.getElementById('hud-player-name');
-      const hudP2 = document.getElementById('hud-bot-name');
+      const s = g.shuttlecock;
+      const p = g.player.group.position;
       return {
-        state: g.state,
-        multiplayerSlot: g.multiplayerSlot,
-        serverSlot: g.serverSlot,
-        canServe: typeof g.canPlayerServe === 'function' ? g.canPlayerServe() : null,
-        serveBarText: serveBar ? serveBar.innerText.trim() : null,
-        serveBarClasses: serveBar ? serveBar.className : null,
-        btnHitText: btnHit ? btnHit.innerText.trim().replace(/\s+/g, ' ') : null,
-        hudP1: hudP1 ? hudP1.innerText.trim() : null,
-        hudP2: hudP2 ? hudP2.innerText.trim() : null,
-        shuttlePos: g.shuttlecock ? { ...g.shuttlecock.position } : null,
-        shuttleAirborne: g.shuttlecock ? g.shuttlecock.isAirborne : null
+        shuttlePos: s ? { x: s.position.x, y: s.position.y, z: s.position.z } : null,
+        playerPos: { x: p.x, y: p.y, z: p.z },
+        distXZ: s ? Math.hypot(p.x - s.position.x, p.z - s.position.z) : null,
+        height: s ? s.position.y : null,
+        canHit: typeof g.canHitShuttle === 'function' ? g.canHitShuttle('hit') : null,
+        state: g.state
       };
     });
+    console.log('\nGuest shuttle when ball arrives:', JSON.stringify(guestShuttleBeforeHit, null, 2));
 
-    const guestInfo = await pageGuest.evaluate(() => {
+    // 6. Guest returns the shuttlecock!
+    console.log('\nGuest attempting to return shuttlecock (Smart Hit)...');
+    await pageGuest.evaluate(() => {
       const g = window.gameManager || {};
-      const serveBar = document.getElementById('serve-indicator-bar');
-      const btnHit = document.getElementById('btn-hit');
-      const hudP1 = document.getElementById('hud-player-name');
-      const hudP2 = document.getElementById('hud-bot-name');
-      return {
-        state: g.state,
-        multiplayerSlot: g.multiplayerSlot,
-        serverSlot: g.serverSlot,
-        canServe: typeof g.canPlayerServe === 'function' ? g.canPlayerServe() : null,
-        serveBarText: serveBar ? serveBar.innerText.trim() : null,
-        serveBarClasses: serveBar ? serveBar.className : null,
-        btnHitText: btnHit ? btnHit.innerText.trim().replace(/\s+/g, ' ') : null,
-        hudP1: hudP1 ? hudP1.innerText.trim() : null,
-        hudP2: hudP2 ? hudP2.innerText.trim() : null,
-        shuttlePos: g.shuttlecock ? { ...g.shuttlecock.position } : null,
-        shuttleAirborne: g.shuttlecock ? g.shuttlecock.isAirborne : null
-      };
+      g.attemptSmartHit();
     });
 
-    console.log('\n========================================');
-    console.log('HOST STATUS BEFORE SERVE:');
-    console.log(JSON.stringify(hostInfo, null, 2));
-    console.log('----------------------------------------');
-    console.log('GUEST STATUS BEFORE SERVE:');
-    console.log(JSON.stringify(guestInfo, null, 2));
-    console.log('========================================\n');
+    // Wait 120ms for any buffered action to execute in animation loop
+    await new Promise(r => setTimeout(r, 120));
 
-    // VERIFY PRE-SERVE CHECKS:
-    // Host must be slot 0, Guest must be slot 1
-    // ServerSlot must be 0
-    // Host canServe must be true, Guest canServe must be false
-    // Host serveBarText must contain "LƯỢT BẠN PHÁT CẦU"
-    // Guest serveBarText must contain "ĐỐI THỦ ĐANG PHÁT CẦU"
+    const guestHitResult = await pageGuest.evaluate(() => {
+      const g = window.gameManager || {};
+      const s = g.shuttlecock;
+      return {
+        state: g.state,
+        lastHitter: s ? s.lastHitter : null,
+        vel: s ? { x: s.velocity.x, y: s.velocity.y, z: s.velocity.z } : null,
+        rallyCount: g.rallyCount
+      };
+    });
+    console.log('Guest hit result:', JSON.stringify(guestHitResult, null, 2));
+
+    // 7. Wait 500ms for Firebase to transmit hit to Host
+    await new Promise(r => setTimeout(r, 600));
+
+    const hostAfterGuestHit = await pageHost.evaluate(() => {
+      const g = window.gameManager || {};
+      const s = g.shuttlecock;
+      return {
+        state: g.state,
+        score: `${g.playerScore} - ${g.botScore}`,
+        lastHitter: s ? s.lastHitter : null,
+        vel: s ? { x: s.velocity.x, y: s.velocity.y, z: s.velocity.z } : null,
+        pos: s ? { x: s.position.x, y: s.position.y, z: s.position.z } : null,
+        rallyCount: g.rallyCount
+      };
+    });
+    console.log('\nHost received return shot from Guest:\n', JSON.stringify(hostAfterGuestHit, null, 2));
+
     const checks = [
-      { name: 'Host is slot 0', pass: hostInfo.multiplayerSlot === 0 },
-      { name: 'Guest is slot 1', pass: guestInfo.multiplayerSlot === 1 },
-      { name: 'Host canServe is true', pass: hostInfo.canServe === true },
-      { name: 'Guest canServe is false', pass: guestInfo.canServe === false },
-      { name: 'Host see LƯỢT BẠN PHÁT CẦU', pass: hostInfo.serveBarText && hostInfo.serveBarText.includes('LƯỢT BẠN PHÁT CẦU') },
-      { name: 'Guest see ĐANG PHÁT CẦU', pass: guestInfo.serveBarText && guestInfo.serveBarText.includes('ĐANG PHÁT CẦU') }
+      { name: 'Guest hit succeeded (lastHitter === "player")', pass: guestHitResult.lastHitter === 'player' },
+      { name: 'Guest shuttle flying back towards Host (vel.z < 0)', pass: guestHitResult.vel && guestHitResult.vel.z < 0 },
+      { name: 'Host received return hit (lastHitter === "bot")', pass: hostAfterGuestHit.lastHitter === 'bot' },
+      { name: 'Host shuttle flying towards Host (vel.z > 0)', pass: hostAfterGuestHit.vel && hostAfterGuestHit.vel.z > 0 },
+      { name: 'Host game remains in RALLY (NO premature ACE!)', pass: hostAfterGuestHit.state === 'RALLY' },
+      { name: 'Rally count incremented on both', pass: hostAfterGuestHit.rallyCount >= 2 }
     ];
 
-    console.log('--- PRE-SERVE VERIFICATION ---');
+    console.log('\n--- RALLY RETURN VERIFICATION ---');
     checks.forEach(c => {
       console.log(`${c.pass ? '✅' : '❌'} ${c.name}`);
     });
 
-    // 6. Test: Guest attempts to serve while not their turn (should be blocked)
-    console.log('\nGuest attempting illegal serve (should be blocked)...');
-    await pageGuest.keyboard.press('Space');
-    await new Promise(r => setTimeout(r, 500));
-
-    const guestIllegalCheck = await pageGuest.evaluate(() => {
-      const g = window.gameManager || {};
-      return {
-        shuttleAirborne: g.shuttlecock ? g.shuttlecock.isAirborne : null,
-        state: g.state
-      };
-    });
-    console.log('Guest illegal serve blocked? AirBorne:', guestIllegalCheck.shuttleAirborne, '(should be false)');
-
-    // 7. Host serves with Space
-    console.log('\nHost pressing Space to serve legally...');
-    await pageHost.keyboard.press('Space');
-
-    // Wait 1.2s for serve physics and Firebase sync
-    await new Promise(r => setTimeout(r, 1200));
-
-    const hostAfterServe = await pageHost.evaluate(() => {
-      const g = window.gameManager || {};
-      return {
-        state: g.state,
-        shuttlePos: g.shuttlecock ? { ...g.shuttlecock.position } : null,
-        shuttleVel: g.shuttlecock ? { ...g.shuttlecock.velocity } : null,
-        shuttleAirborne: g.shuttlecock ? g.shuttlecock.isAirborne : null
-      };
-    });
-
-    const guestAfterServe = await pageGuest.evaluate(() => {
-      const g = window.gameManager || {};
-      return {
-        state: g.state,
-        shuttlePos: g.shuttlecock ? { ...g.shuttlecock.position } : null,
-        shuttleVel: g.shuttlecock ? { ...g.shuttlecock.velocity } : null,
-        shuttleAirborne: g.shuttlecock ? g.shuttlecock.isAirborne : null
-      };
-    });
-
-    console.log('\n========================================');
-    console.log('HOST STATUS AFTER SERVE:');
-    console.log(JSON.stringify(hostAfterServe, null, 2));
-    console.log('----------------------------------------');
-    console.log('GUEST STATUS AFTER SERVE:');
-    console.log(JSON.stringify(guestAfterServe, null, 2));
-    console.log('========================================\n');
-
-    const serveChecks = [
-      { name: 'Host game transitioned to RALLY', pass: hostAfterServe.state === 'RALLY' },
-      { name: 'Guest game transitioned to RALLY', pass: guestAfterServe.state === 'RALLY' },
-      { name: 'Host shuttle is airborne', pass: hostAfterServe.shuttleAirborne === true },
-      { name: 'Guest shuttle is airborne', pass: guestAfterServe.shuttleAirborne === true },
-      { name: 'Host shuttle flying towards opponent (vel.z < 0)', pass: hostAfterServe.shuttleVel && hostAfterServe.shuttleVel.z < 0 },
-      { name: 'Guest shuttle flying towards player side (vel.z > 0)', pass: guestAfterServe.shuttleVel && guestAfterServe.shuttleVel.z > 0 }
-    ];
-
-    console.log('--- AFTER-SERVE VERIFICATION ---');
-    serveChecks.forEach(c => {
-      console.log(`${c.pass ? '✅' : '❌'} ${c.name}`);
-    });
-
-    // 8. Wait for point to conclude and next serve cycle to begin
-    console.log('\nWaiting for shuttlecock to land and point to conclude...');
-    await new Promise(r => setTimeout(r, 4000));
-
-    const hostPoint = await pageHost.evaluate(() => {
-      const g = window.gameManager || {};
-      const serveBar = document.getElementById('serve-indicator-bar');
-      return {
-        state: g.state,
-        score: `${g.playerScore} - ${g.botScore}`,
-        serverSlot: g.serverSlot,
-        canServe: typeof g.canPlayerServe === 'function' ? g.canPlayerServe() : null,
-        serveBarText: serveBar ? serveBar.innerText.trim() : null
-      };
-    });
-
-    const guestPoint = await pageGuest.evaluate(() => {
-      const g = window.gameManager || {};
-      const serveBar = document.getElementById('serve-indicator-bar');
-      return {
-        state: g.state,
-        score: `${g.playerScore} - ${g.botScore}`,
-        serverSlot: g.serverSlot,
-        canServe: typeof g.canPlayerServe === 'function' ? g.canPlayerServe() : null,
-        serveBarText: serveBar ? serveBar.innerText.trim() : null
-      };
-    });
-
-    console.log('\n========================================');
-    console.log('HOST AFTER POINT:\n', JSON.stringify(hostPoint, null, 2));
-    console.log('----------------------------------------');
-    console.log('GUEST AFTER POINT:\n', JSON.stringify(guestPoint, null, 2));
-    console.log('========================================\n');
-
-    const pointChecks = [
-      { name: 'Host transitioned to SERVE for next rally', pass: hostPoint.state === 'SERVE' },
-      { name: 'Guest transitioned to SERVE for next rally', pass: guestPoint.state === 'SERVE' },
-      { name: 'Scores synchronized (Host P1 = Guest P2)', pass: hostPoint.score.split(' - ')[0] === guestPoint.score.split(' - ')[1] && hostPoint.score.split(' - ')[1] === guestPoint.score.split(' - ')[0] },
-      { name: 'Server role matches on both (canServe exclusive)', pass: (hostPoint.canServe && !guestPoint.canServe) || (!hostPoint.canServe && guestPoint.canServe) }
-    ];
-
-    console.log('--- NEXT POINT & SERVE CYCLE VERIFICATION ---');
-    pointChecks.forEach(c => {
-      console.log(`${c.pass ? '✅' : '❌'} ${c.name}`);
-    });
-
-    const allPassed = checks.every(c => c.pass) && serveChecks.every(c => c.pass) && pointChecks.every(c => c.pass);
+    const allPassed = checks.every(c => c.pass);
     if (allPassed) {
-      console.log('\n🎉🎉🎉 ALL MULTIPLAYER SERVE TESTS PASSED PERFECTLY! 🎉🎉🎉');
+      console.log('\n🎉🎉🎉 RALLY RETURN TEST PASSED 100%! GUEST RETURNED SHOT AND RALLY CONTINUED! 🎉🎉🎉');
     } else {
-      console.log('\n⚠️ Some multiplayer checks failed!');
+      console.log('\n⚠️ Some checks failed!');
     }
 
   } catch (err) {

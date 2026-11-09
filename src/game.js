@@ -165,6 +165,8 @@ export class GameManager {
       }
     });
 
+    this.pendingGroundPointTimeout = null;
+
     // 2. Đối thủ đánh cầu (tự động đảo góc nhìn qua lưới để quả cầu bay về phía sân người chơi)
     network.on('remoteHit', (data) => {
       if (!this.isMultiplayer) return;
@@ -174,9 +176,24 @@ export class GameManager {
       // Giải phóng quả cầu sang trạng thái RALLY ngay lập tức (triệt tiêu lỗi cầu bị đóng băng lúc phát)
       this.state = 'RALLY';
 
-      this.bot.playAction(data.shotType === 'smash' ? 'smash' : 'swing');
-      sounds.playHit(data.shotType === 'smash');
-      if (data.shotType === 'smash' && this.particles.emitFireSmash) {
+      // HỦY BỎ BẤT KỲ TIMEOUT TÍNH ĐIỂM NÀO ĐANG CHỜ (ĐỐI THỦ ĐÃ ĐỠ CẦU THÀNH CÔNG!)
+      if (this.pendingGroundPointTimeout) {
+        clearTimeout(this.pendingGroundPointTimeout);
+        this.pendingGroundPointTimeout = null;
+      }
+
+      const isSmash = (data.shotType === 'smash');
+      const isDive = (data.shotType === 'dive');
+      const isDrop = (data.shotType === 'drop');
+
+      this.bot.playAction(isSmash ? 'smash' : (isDive ? 'dive' : 'swing'));
+      if (isDrop) {
+        sounds.playDrop();
+      } else {
+        sounds.playHit(isSmash);
+      }
+
+      if (isSmash && this.particles.emitFireSmash) {
         this.particles.emitFireSmash(this.shuttlecock.position, 48);
         this.shakeIntensity = 0.52;
       } else {
@@ -195,12 +212,16 @@ export class GameManager {
       });
 
       this.registerRallyHit('bot', data.shotType);
-      this.notifyUI(data.timing || 'ĐỐI THỦ ĐÁNH! 🏸', `Rally: ${this.rallyCount} chạm`, data.shotType === 'smash' ? 'smash' : 'hit');
+      this.notifyUI(data.timing || 'ĐỐI THỦ ĐÁNH! 🏸', `Rally: ${this.rallyCount} chạm`, isSmash ? 'smash' : (isDrop ? 'drop' : 'hit'));
     });
 
     // 3. Đồng bộ điểm số chính xác theo Slot (Slot 0 là Team 1, Slot 1 là Team 2)
     network.on('remoteScore', (data) => {
       if (!this.isMultiplayer) return;
+      if (this.pendingGroundPointTimeout) {
+        clearTimeout(this.pendingGroundPointTimeout);
+        this.pendingGroundPointTimeout = null;
+      }
       this.state = 'POINT';
       this.stateTimer = 0;
       if (this.multiplayerSlot === 0) {
@@ -297,6 +318,10 @@ export class GameManager {
   }
 
   setupServe() {
+    if (this.pendingGroundPointTimeout) {
+      clearTimeout(this.pendingGroundPointTimeout);
+      this.pendingGroundPointTimeout = null;
+    }
     this.state = 'SERVE';
     this.stateTimer = 0;
     this.rallyCount = 0;
@@ -367,6 +392,7 @@ export class GameManager {
     this.player.playAction('swing');
     sounds.playHit(false);
     this.particles.emitHit(this.shuttlecock.position, 14, false);
+    this.registerRallyHit('player', 'serve');
 
     // Phát cầu BẮT BUỘC chéo sân theo luật BWF:
     const isPlayerRight = this.player.group.position.x > 0;
@@ -446,15 +472,16 @@ export class GameManager {
 
   canHitShuttle(actionType) {
     const s = this.shuttlecock;
-    if (!s.isAirborne || s.lastHitter === 'player' || s.velocity.z < 0) return false;
+    // Không đánh lại cú đánh của chính mình, cầu phải đang bay
+    if (!s.isAirborne || s.lastHitter === 'player') return false;
     const pPos = this.player.group.position;
     const distXZ = new THREE.Vector2(pPos.x - s.position.x, pPos.z - s.position.z).length();
     const height = s.position.y;
-    // Bán kính tiếp xúc vợt thực tế (giới hạn trong tầm với hợp lý, triệt tiêu lỗi đánh toàn map):
-    // - Dive (cứu cầu): tối đa 2.2m (bước rướn chân lao người trượt sàn)
-    // - Smash (đập cầu): tối đa 1.65m (bật nhảy tại chỗ vươn cao)
-    // - Clear / Drop / Hit: tối đa 1.45m (sải tay + chiều dài cán vợt)
-    const maxReach = actionType === 'dive' ? 2.2 : (actionType === 'smash' ? 1.65 : 1.45);
+    // Bán kính tiếp xúc vợt thực tế (bước rướn chân + vung cán vợt):
+    // - Dive (cứu cầu): tối đa 2.5m (bước rướn chân lao người trượt sàn)
+    // - Smash (đập cầu): tối đa 2.0m (bật nhảy tại chỗ vươn cao)
+    // - Clear / Drop / Hit: tối đa 1.85m (sải tay + chiều dài cán vợt)
+    const maxReach = actionType === 'dive' ? 2.5 : (actionType === 'smash' ? 2.0 : 1.85);
     return distXZ <= maxReach && height >= 0.05 && height <= 4.2 && s.position.z > 0.05;
   }
 
@@ -473,17 +500,17 @@ export class GameManager {
     const pZ = pPos.z;
 
     // 💥 1. Khi quả cầu đang ở trên cao và trong tầm bật nhảy: Jump Smash cắm sàn!
-    if (height >= 2.0 && distXZ <= 1.65) {
+    if (height >= 1.9 && distXZ <= 2.0) {
       return 'smash';
     }
 
     // 🪶 2. Khi bạn đang đứng sát lưới và cầu ở tầm thấp: Chạm nhẹ bỏ nhỏ (Drop shot)!
-    if ((pZ <= 2.6 || sZ <= 2.3) && height < 2.0 && height >= 0.55 && distXZ <= 1.45) {
+    if ((pZ <= 2.8 || sZ <= 2.5) && height < 2.0 && height >= 0.55 && distXZ <= 1.85) {
       return 'drop';
     }
 
     // 💨 3. Khi quả cầu rơi ở xa tầm chân hoặc sát đất trong cự ly cứu: Lao người trượt sàn (Dive)!
-    if (distXZ > 1.35 && distXZ <= 2.2 && height <= 1.4 && sZ > 0.1) {
+    if (distXZ > 1.35 && distXZ <= 2.5 && height <= 1.6 && sZ > 0.1) {
       return 'dive';
     }
 
@@ -569,23 +596,23 @@ export class GameManager {
     let targetNetY = 1.85;
 
     if (shotType === 'smash') {
-      flightTime = 0.28 / speedMult;
-      targetNetY = 1.68;
+      flightTime = 0.40 / speedMult;
+      targetNetY = 1.72;
     } else if (shotType === 'drop') {
-      flightTime = 0.82 / speedMult;
+      flightTime = 0.85 / speedMult;
       targetNetY = 1.62; // Bay lướt sát mép trên của lưới
     } else {
       flightTime = 1.20 / speedMult;
       targetNetY = 3.6;
     }
 
-    const dragFactorZ = 1 + 0.045 * Math.abs(dz);
+    const dragFactorZ = 1 + 0.018 * Math.abs(dz);
     const vz = (dz / flightTime) * dragFactorZ;
 
-    const dragFactorX = 1 + 0.045 * Math.abs(dx);
+    const dragFactorX = 1 + 0.018 * Math.abs(dx);
     const vx = (dx / flightTime) * dragFactorX;
 
-    const timeToNet = Math.abs(startPos.z / vz);
+    const timeToNet = Math.max(0.15, Math.abs(startPos.z / (Math.abs(vz) || 1)));
     let vy = (targetNetY - startPos.y - 0.5 * g * timeToNet * timeToNet) / timeToNet;
 
     if (shotType === 'clear') {
@@ -593,7 +620,7 @@ export class GameManager {
     } else if (shotType === 'drop') {
       vy = Math.max(vy, 4.2);
     } else if (shotType === 'smash') {
-      vy = Math.min(vy, 3.5); // Cắm dốc xuống cực mạnh
+      vy = THREE.MathUtils.clamp(vy, -5.5, 2.5); // Cắm dốc xuống uy lực chuẩn smash, rơi gọn gàng trong sân
     }
 
     return new THREE.Vector3(vx, vy, vz);
@@ -656,6 +683,16 @@ export class GameManager {
         shotType: 'dive'
       });
 
+      if (this.isMultiplayer) {
+        network.sendHit({
+          shotType: 'dive',
+          from: { x: startPos.x, y: startPos.y, z: startPos.z },
+          velocity: { x: vel.x, y: vel.y, z: vel.z },
+          target: { x: targetPos.x, y: targetPos.y, z: targetPos.z },
+          timing: '💨 CỨU CẦU NGOẠN MỤC!'
+        });
+      }
+
       this.notifyUI('💨 CỨU CẦU NGOẠN MỤC! 🛡️', `Rally: ${this.rallyCount} chạm`, 'hit');
       return true;
     }
@@ -686,6 +723,16 @@ export class GameManager {
         shotType: 'smash'
       });
 
+      if (this.isMultiplayer) {
+        network.sendHit({
+          shotType: 'smash',
+          from: { x: startPos.x, y: startPos.y, z: startPos.z },
+          velocity: { x: vel.x, y: vel.y, z: vel.z },
+          target: { x: targetPos.x, y: targetPos.y, z: targetPos.z },
+          timing: '💥 SIÊU SMASH TÓE LỬA!'
+        });
+      }
+
       this.notifyUI('💥 SIÊU SMASH TÓE LỬA! 🔥', `Rally: ${this.rallyCount} chạm`, 'smash');
       return true;
     }
@@ -711,6 +758,16 @@ export class GameManager {
         shotType: 'drop'
       });
 
+      if (this.isMultiplayer) {
+        network.sendHit({
+          shotType: 'drop',
+          from: { x: startPos.x, y: startPos.y, z: startPos.z },
+          velocity: { x: vel.x, y: vel.y, z: vel.z },
+          target: { x: targetPos.x, y: targetPos.y, z: targetPos.z },
+          timing: '🪶 BỎ NHỎ SÁT LƯỚI!'
+        });
+      }
+
       this.notifyUI('🪶 BỎ NHỎ SÁT LƯỚI! ✨', `Rally: ${this.rallyCount} chạm`, 'drop');
       return true;
     }
@@ -734,6 +791,16 @@ export class GameManager {
       hitter: 'player',
       shotType: 'clear'
     });
+
+    if (this.isMultiplayer) {
+      network.sendHit({
+        shotType: 'clear',
+        from: { x: startPos.x, y: startPos.y, z: startPos.z },
+        velocity: { x: vel.x, y: vel.y, z: vel.z },
+        target: { x: targetPos.x, y: targetPos.y, z: targetPos.z },
+        timing: '🏸 ĐÁNH CẦU CHẮC TAY!'
+      });
+    }
 
     this.notifyUI('🏸 ĐÁNH CẦU CHẮC TAY! 🎯', `Rally: ${this.rallyCount} chạm`, 'hit');
     return true;
@@ -833,6 +900,16 @@ export class GameManager {
             return;
           }
 
+          if (this.isMultiplayer) {
+            if (this.pendingGroundPointTimeout) clearTimeout(this.pendingGroundPointTimeout);
+            this.pendingGroundPointTimeout = setTimeout(() => {
+              if (this.state === 'RALLY') {
+                this.onPointScored('player', 'GIAO CẦU ĂN ĐIỂM TRỰC TIẾP! (ACE)');
+              }
+            }, 750);
+            return;
+          }
+
           this.onPointScored('player', 'GIAO CẦU ĂN ĐIỂM TRỰC TIẾP! (ACE)');
           return;
         } else {
@@ -878,10 +955,23 @@ export class GameManager {
           : (this.isDoubles ? 'ĐỐI THỦ ĐÁNH NGOÀI BIÊN ĐÔI! (OUT)' : 'ĐỐI THỦ ĐÁNH CẦU RA NGOÀI! (OUT)');
         this.onPointScored(winner, reason);
       } else {
-        // Cầu rơi hợp lệ trong sân đối phương: Bên vừa đánh ghi điểm!
-        const winner = hitter === 'player' ? 'player' : 'bot';
-        const reason = hitter === 'player' ? 'CẦU TRONG SÂN! (IN POINT)' : 'ĐỐI THỦ GHI ĐIỂM SÂN NHÀ!';
-        this.onPointScored(winner, reason);
+        // Cầu rơi hợp lệ trong sân
+        if (hitter === 'player') {
+          // Bạn đánh sang sân đối phương (landZ < 0):
+          if (this.isMultiplayer) {
+            if (this.pendingGroundPointTimeout) clearTimeout(this.pendingGroundPointTimeout);
+            this.pendingGroundPointTimeout = setTimeout(() => {
+              if (this.state === 'RALLY') {
+                this.onPointScored('player', 'CẦU TRONG SÂN! (IN POINT)');
+              }
+            }, 750);
+            return;
+          }
+          this.onPointScored('player', 'CẦU TRONG SÂN! (IN POINT)');
+        } else {
+          // Đối thủ đánh sang sân bạn (landZ > 0) và bạn không đỡ được:
+          this.onPointScored('bot', 'ĐỐI THỦ GHI ĐIỂM SÂN NHÀ!');
+        }
       }
     }
   }
